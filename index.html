@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Ficha de Calicata v3</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;font-size:15px;background:#f4f3ef;color:#1a1a1a}
+.app-header{background:#26215C;color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.app-header h1{font-size:16px;font-weight:500}
+.app-header span{font-size:12px;opacity:0.7}
+.section{background:#fff;margin:10px 12px;border-radius:12px;border:0.5px solid #ddd;overflow:hidden}
+.section-header{background:#f8f7f4;padding:12px 16px;border-bottom:0.5px solid #e5e5e5;font-size:13px;font-weight:500;color:#444;display:flex;align-items:center;gap:8px}
+.section-header .num{background:#26215C;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.field{padding:12px 16px;border-bottom:0.5px solid #f0f0f0}
+.field:last-child{border-bottom:none}
+.field label{display:block;font-size:12px;color:#666;margin-bottom:6px;font-weight:500}
+.field input,.field select,.field textarea{width:100%;padding:10px 12px;border:0.5px solid #ddd;border-radius:8px;font-size:15px;color:#1a1a1a;background:#fafafa;-webkit-appearance:none;appearance:none}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:#534AB7;background:#fff}
+.field textarea{min-height:72px;resize:vertical}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px;border-bottom:0.5px solid #f0f0f0}
+.field-row .sub-field label{display:block;font-size:12px;color:#666;margin-bottom:6px;font-weight:500}
+.field-row .sub-field input,.field-row .sub-field select{width:100%;padding:10px 12px;border:0.5px solid #ddd;border-radius:8px;font-size:15px;color:#1a1a1a;background:#fafafa;-webkit-appearance:none;appearance:none}
+.field-row .sub-field input:focus,.field-row .sub-field select:focus{outline:none;border-color:#534AB7;background:#fff}
+.btn-gps{width:100%;padding:12px;border:0.5px solid #185FA5;border-radius:8px;background:#E6F1FB;color:#0C447C;font-size:14px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-gps:active{background:#B5D4F4}
+.gps-result{margin-top:8px;font-size:12px;color:#185FA5;background:#E6F1FB;padding:8px 12px;border-radius:6px;display:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:4px 0}
+.chip{padding:7px 12px;border:0.5px solid #ddd;border-radius:20px;font-size:13px;cursor:pointer;background:#fafafa;color:#444;transition:all 0.15s;white-space:nowrap;user-select:none}
+.chip.selected{background:#26215C;color:#fff;border-color:#26215C}
+.chip.otro-chip{border-style:dashed}
+.otro-input{margin-top:8px;display:none;width:100%;padding:10px 12px;border:0.5px solid #534AB7;border-radius:8px;font-size:14px}
+.estrato-card{background:#f8f7f4;border:0.5px solid #e0e0e0;border-radius:10px;margin:10px 16px;overflow:hidden}
+.estrato-header{background:#534AB7;color:#fff;padding:10px 14px;font-size:13px;font-weight:500;display:flex;justify-content:space-between;align-items:center}
+.estrato-header button{background:none;border:0.5px solid rgba(255,255,255,0.5);color:#fff;border-radius:6px;padding:3px 8px;font-size:12px;cursor:pointer}
+.estrato-field{padding:10px 14px;border-bottom:0.5px solid #ebebeb}
+.estrato-field:last-child{border-bottom:none}
+.estrato-field label{display:block;font-size:12px;color:#666;margin-bottom:5px;font-weight:500}
+.estrato-field input,.estrato-field select,.estrato-field textarea{width:100%;padding:9px 11px;border:0.5px solid #ddd;border-radius:7px;font-size:14px;background:#fff;-webkit-appearance:none;appearance:none}
+.estrato-field input:focus,.estrato-field select:focus,.estrato-field textarea:focus{outline:none;border-color:#534AB7}
+.estrato-field textarea{min-height:56px;resize:vertical}
+.estrato-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 14px;border-bottom:0.5px solid #ebebeb}
+.estrato-row .sub-field label{display:block;font-size:12px;color:#666;margin-bottom:5px;font-weight:500}
+.estrato-row .sub-field input,.estrato-row .sub-field select{width:100%;padding:9px 11px;border:0.5px solid #ddd;border-radius:7px;font-size:14px;background:#fff;-webkit-appearance:none;appearance:none}
+.estrato-row .sub-field input:focus,.estrato-row .sub-field select:focus{outline:none;border-color:#534AB7}
+.grad-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:10px 14px;border-bottom:0.5px solid #ebebeb}
+.grad-row .sub-field label{display:block;font-size:11px;color:#666;margin-bottom:4px;font-weight:500}
+.grad-row .sub-field input{width:100%;padding:8px 10px;border:0.5px solid #ddd;border-radius:7px;font-size:14px;background:#fff;text-align:center}
+.grad-row .sub-field input:focus{outline:none;border-color:#534AB7}
+.grad-total{padding:6px 14px 10px;font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px;border-bottom:0.5px solid #ebebeb}
+.grad-total.ok{color:#0F6E56}
+.grad-total.err{color:#A32D2D}
+.grad-total.warn{color:#854F0B}
+.btn-add-estrato{margin:10px 16px 4px;width:calc(100% - 32px);padding:12px;border:1.5px dashed #534AB7;border-radius:8px;background:#EEEDFE;color:#26215C;font-size:14px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-add-estrato:active{background:#CECBF6}
+.validacion-cotas{margin:8px 16px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.validacion-cotas.ok{background:#E1F5EE;color:#0F6E56;display:block}
+.validacion-cotas.err{background:#FCEBEB;color:#A32D2D;display:block}
+.muestra-tabla{width:100%;border-collapse:collapse;font-size:13px}
+.muestra-tabla th{background:#EEEDFE;color:#26215C;padding:7px 8px;font-weight:500;font-size:11px;text-align:left;border:0.5px solid #ddd}
+.muestra-tabla td{padding:6px 8px;border:0.5px solid #ddd;background:#fff;vertical-align:middle}
+.muestra-tabla select,.muestra-tabla input{width:100%;padding:5px 7px;border:0.5px solid #ddd;border-radius:5px;font-size:13px;background:#fafafa;-webkit-appearance:none;appearance:none}
+.muestra-tabla select:focus,.muestra-tabla input:focus{outline:none;border-color:#534AB7}
+.btn-add-muestra{margin-top:8px;padding:7px 12px;border:0.5px dashed #534AB7;border-radius:6px;background:#EEEDFE;color:#26215C;font-size:12px;cursor:pointer}
+.btn-del-muestra{background:none;border:none;color:#A32D2D;font-size:16px;cursor:pointer;padding:0 4px}
+.fotos-preview{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.foto-thumb{position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:0.5px solid #ddd}
+.foto-thumb img{width:100%;height:100%;object-fit:cover}
+.foto-thumb .del-foto{position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.btn-foto{width:100%;padding:11px;border:0.5px solid #0F6E56;border-radius:8px;background:#E1F5EE;color:#085041;font-size:14px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:6px}
+.btn-foto:active{background:#9FE1CB}
+.btn-submit{margin:16px 12px 8px;width:calc(100% - 24px);padding:15px;border:none;border-radius:10px;background:#26215C;color:#fff;font-size:16px;font-weight:500;cursor:pointer}
+.btn-submit:active{background:#3C3489}
+.btn-submit:disabled{background:#aaa;cursor:not-allowed}
+.btn-nueva{margin:4px 12px 20px;width:calc(100% - 24px);padding:13px;border:0.5px solid #26215C;border-radius:10px;background:#fff;color:#26215C;font-size:15px;font-weight:500;cursor:pointer;display:none}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.toast.ok{background:#0F6E56}
+.toast.err{background:#A32D2D}
+.sucs-desc{font-size:11px;color:#888;margin-top:4px;font-style:italic}
+.pendientes-banner{margin:8px 12px;padding:10px 14px;background:#FAEEDA;border:0.5px solid #EF9F27;border-radius:8px;font-size:13px;color:#412402;display:none}
+.cota-err{border-color:#A32D2D !important;background:#fff8f8 !important}
+.color-swatch{display:inline-block;width:14px;height:14px;border-radius:3px;border:0.5px solid rgba(0,0,0,0.2);margin-right:6px;vertical-align:middle}
+.roca-fields{display:none;margin-top:8px}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>⛏ Ficha de Calicata v3</h1>
+  <span id="header-info">nuevo registro</span>
+</div>
+
+<div class="pendientes-banner" id="pendientes-banner"></div>
+
+<!-- SECCIÓN 1: PROYECTO -->
+<div class="section">
+  <div class="section-header"><span class="num">1</span> Proyecto y calicata</div>
+  <div class="field">
+    <label>Proyecto</label>
+    <select id="proyecto" onchange="updateProyecto()">
+      <option value="">— seleccionar o crear nuevo —</option>
+    </select>
+  </div>
+  <div class="field" id="campo-nuevo-proyecto" style="display:none">
+    <label>Nombre del nuevo proyecto</label>
+    <input type="text" id="nuevo-proyecto" placeholder="Ej: Centro Comercial El Huingal" oninput="updateHeader()">
+  </div>
+  <div class="field-row">
+    <div class="sub-field">
+      <label>ID calicata</label>
+      <input type="text" id="idCalicata" placeholder="C-1" oninput="updateHeader()">
+    </div>
+    <div class="sub-field">
+      <label>Fecha</label>
+      <input type="date" id="fecha">
+    </div>
+  </div>
+  <div class="field-row">
+    <div class="sub-field">
+      <label>Profundidad total (m)</label>
+      <input type="number" id="profTotal" placeholder="1.50" step="0.05" min="0" oninput="validarCotas()">
+    </div>
+    <div class="sub-field">
+      <label>Nivel freático (m)</label>
+      <input type="number" id="nivelFreatico" placeholder="No detectado" step="0.05" min="0">
+    </div>
+  </div>
+</div>
+
+<!-- SECCIÓN 2: GPS -->
+<div class="section">
+  <div class="section-header"><span class="num">2</span> Ubicación GPS</div>
+  <div class="field">
+    <button class="btn-gps" onclick="obtenerGPS()">⊕ Obtener ubicación desde GPS</button>
+    <div class="gps-result" id="gps-result"></div>
+    <input type="hidden" id="latitud">
+    <input type="hidden" id="longitud">
+    <input type="hidden" id="precision">
+  </div>
+</div>
+
+<!-- SECCIÓN 3: ESTRATOS -->
+<div class="section">
+  <div class="section-header"><span class="num">3</span> Estratos</div>
+  <div id="estratos-container"></div>
+  <div class="validacion-cotas" id="validacion-cotas"></div>
+  <button class="btn-add-estrato" onclick="agregarEstrato()">+ Agregar estrato</button>
+</div>
+
+<!-- SECCIÓN 4: FOTOS -->
+<div class="section">
+  <div class="section-header"><span class="num">4</span> Fotos de la calicata</div>
+  <div class="field">
+    <button class="btn-foto" onclick="document.getElementById('input-foto').click()">📷 Tomar o adjuntar foto</button>
+    <input type="file" id="input-foto" accept="image/*" capture="environment" multiple style="display:none" onchange="agregarFotos(this)">
+    <div class="fotos-preview" id="fotos-preview"></div>
+  </div>
+  <div class="field" id="btn-descargar-fotos-wrap" style="display:none">
+    <button class="btn-gps" onclick="descargarFotosLocal()">↓ Descargar fotos en este dispositivo</button>
+  </div>
+</div>
+
+<!-- SECCIÓN 5: OBSERVACIONES -->
+<div class="section">
+  <div class="section-header"><span class="num">5</span> Observaciones generales</div>
+  <div class="field">
+    <label>Notas de terreno (derrumbes, filtraciones, entibación, etc.)</label>
+    <textarea id="observaciones" placeholder="Opcional..."></textarea>
+  </div>
+</div>
+
+<button class="btn-submit" id="btn-submit" onclick="enviar()">Guardar en la nube</button>
+<button class="btn-nueva" id="btn-nueva" onclick="nuevaCalicata()">+ Nueva calicata</button>
+<div class="toast" id="toast"></div>
+
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxHYUUu812Vyz2PTO6C5a1nvNjUr1CeeuOBi6bjf7tAc1LqZasNVwFgJ_vIe2V8yuvY-A/exec";
+
+// SUCS completo incluyendo símbolos dobles, roca y rellenos
+const SUCS_MAP = {
+  // Gravas
+  "GW":"Grava bien graduada",
+  "GP":"Grava mal graduada",
+  "GM":"Grava limosa",
+  "GC":"Grava arcillosa",
+  "GW-GM":"Grava bien graduada con limo (frontera)",
+  "GW-GC":"Grava bien graduada con arcilla (frontera)",
+  "GP-GM":"Grava mal graduada con limo (frontera)",
+  "GP-GC":"Grava mal graduada con arcilla (frontera)",
+  // Arenas
+  "SW":"Arena bien graduada",
+  "SP":"Arena mal graduada",
+  "SM":"Arena limosa",
+  "SC":"Arena arcillosa",
+  "SW-SM":"Arena bien graduada con limo (frontera)",
+  "SW-SC":"Arena bien graduada con arcilla (frontera)",
+  "SP-SM":"Arena mal graduada con limo (frontera)",
+  "SP-SC":"Arena mal graduada con arcilla (frontera)",
+  // Finos
+  "ML":"Limo inorgánico baja plasticidad",
+  "CL":"Arcilla inorgánica baja-media plasticidad",
+  "OL":"Limo/arcilla orgánica baja plasticidad",
+  "MH":"Limo inorgánico alta plasticidad",
+  "CH":"Arcilla inorgánica alta plasticidad",
+  "OH":"Arcilla/limo orgánico alta plasticidad",
+  "PT":"Turba / suelo altamente orgánico",
+  // Roca
+  "ROCA-SED":"Roca sedimentaria",
+  "ROCA-IGN":"Roca ígnea",
+  "ROCA-MET":"Roca metamórfica",
+  // Rellenos
+  "RELL-C":"Relleno controlado",
+  "RELL-CONT":"Relleno contaminado"
+};
+
+// Nombres locales típicos del sur de Chile
+const NOMBRES_LOCALES = ["Trumao","Ñadis","Caliche","Pumicita","Mazacote","Relleno artificial","Otro..."];
+
+// Reglas por grupo SUCS
+const ES_GRANULAR = ["GW","GP","GM","GC","GW-GM","GW-GC","GP-GM","GP-GC","SW","SP","SM","SC","SW-SM","SW-SC","SP-SM","SP-SC"];
+const ES_GRAVA    = ["GW","GP","GM","GC","GW-GM","GW-GC","GP-GM","GP-GC"];
+const ES_FINO     = ["ML","CL","OL","MH","CH","OH"];
+const ES_ROCA     = ["ROCA-SED","ROCA-IGN","ROCA-MET"];
+const ES_RELLENO  = ["RELL-C","RELL-CONT"];
+const TIENE_PLAST = ["ML","CL","OL","MH","CH","OH","GM","GC","SM","SC","GW-GM","GW-GC","GP-GM","GP-GC","SW-SM","SW-SC","SP-SM","SP-SC"];
+
+// Colores con swatches
+const COLORES = [
+  {n:"Café",c:"#8B6347"},{n:"Café claro",c:"#C49A6C"},{n:"Café oscuro",c:"#5C3A1E"},
+  {n:"Gris",c:"#9E9E9E"},{n:"Gris claro",c:"#CFD8DC"},{n:"Gris oscuro",c:"#546E7A"},
+  {n:"Negro",c:"#212121"},{n:"Amarillo",c:"#F9A825"},{n:"Rojo",c:"#C62828"},
+  {n:"Naranja",c:"#E65100"},{n:"Verde",c:"#2E7D32"},{n:"Blanco",c:"#F5F5F5"}
+];
+
+let estratoCount = 0;
+let fotosData = [];
+let proyectos = JSON.parse(localStorage.getItem('proy_v3') || '[]');
+
+// ── PENDIENTES ──
+function getPendientes(){ return JSON.parse(localStorage.getItem('pend_v3')||'[]'); }
+function setPendientes(p){ localStorage.setItem('pend_v3',JSON.stringify(p)); }
+function mostrarPendientes(){
+  const p=getPendientes();
+  const b=document.getElementById('pendientes-banner');
+  if(p.length>0){
+    b.style.display='block';
+    b.innerHTML=`⚠ ${p.length} registro(s) pendiente(s). <button onclick="sincronizar()" style="margin-left:8px;padding:4px 10px;border:0.5px solid #854F0B;border-radius:6px;background:#FAEEDA;color:#412402;font-size:12px;cursor:pointer">Sincronizar ahora</button>`;
+  } else { b.style.display='none'; }
+}
+async function sincronizar(){
+  const p=getPendientes(); if(!p.length){showToast('No hay pendientes','ok');return;}
+  showToast('Sincronizando '+p.length+' registro(s)...');
+  let ok=0,fail=0;
+  for(const item of p){
+    try{ await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)}); ok++; }
+    catch(e){ fail++; }
+  }
+  if(fail===0){ setPendientes([]); showToast('Sincronización completa ✓','ok'); }
+  else showToast(ok+' ok, '+fail+' fallaron','err');
+  mostrarPendientes();
+}
+
+// ── PROYECTOS ──
+function initProyectos(){
+  const sel=document.getElementById('proyecto');
+  sel.innerHTML='<option value="">— seleccionar o crear nuevo —</option>';
+  proyectos.forEach(p=>{ const o=document.createElement('option'); o.value=p; o.textContent=p; sel.appendChild(o); });
+  const oN=document.createElement('option'); oN.value='__nuevo__'; oN.textContent='+ Crear nuevo proyecto...'; sel.appendChild(oN);
+}
+function updateProyecto(){
+  const v=document.getElementById('proyecto').value;
+  document.getElementById('campo-nuevo-proyecto').style.display=v==='__nuevo__'?'block':'none';
+  updateHeader();
+}
+function updateHeader(){
+  const pv=document.getElementById('proyecto').value;
+  const np=document.getElementById('nuevo-proyecto').value;
+  const c=document.getElementById('idCalicata').value;
+  const nombre=pv==='__nuevo__'?(np||'nuevo proyecto'):(pv||'sin proyecto');
+  document.getElementById('header-info').textContent=nombre+(c?' · '+c:'');
+}
+
+// ── CHIPS ──
+function makeChips(opciones,name,allowOtro=false){
+  let h='<div class="chips" id="chips-'+name+'">';
+  opciones.forEach(op=>{ h+=`<span class="chip" onclick="toggleChip(this,'${name}')">${op}</span>`; });
+  if(allowOtro) h+=`<span class="chip otro-chip" onclick="toggleOtro('${name}')">Otro...</span>`;
+  h+='</div>';
+  if(allowOtro) h+=`<input class="otro-input" id="otro-${name}" placeholder="Especificar...">`;
+  return h;
+}
+function makeColorChips(name){
+  let h='<div class="chips" id="chips-'+name+'">';
+  COLORES.forEach(col=>{
+    h+=`<span class="chip" onclick="toggleChip(this,'${name}')" style="display:flex;align-items:center">
+      <span class="color-swatch" style="background:${col.c}"></span>${col.n}</span>`;
+  });
+  h+=`<span class="chip otro-chip" onclick="toggleOtro('${name}')">Otra...</span>`;
+  h+='</div>';
+  h+=`<input class="otro-input" id="otro-${name}" placeholder="Ej: Munsell 10YR 4/2">`;
+  return h;
+}
+function toggleChip(el,name){
+  document.querySelectorAll('#chips-'+name+' .chip:not(.otro-chip)').forEach(c=>c.classList.remove('selected'));
+  el.classList.toggle('selected');
+}
+function toggleOtro(name){
+  const i=document.getElementById('otro-'+name);
+  i.style.display=i.style.display==='block'?'none':'block';
+  if(i.style.display==='block') i.focus();
+}
+function getChip(name){
+  const s=document.querySelector('#chips-'+name+' .chip.selected:not(.otro-chip)');
+  const o=document.getElementById('otro-'+name);
+  if(o&&o.style.display==='block'&&o.value.trim()) return o.value.trim();
+  return s?s.textContent.trim():'';
+}
+
+// ── GPS ──
+function obtenerGPS(){
+  if(!navigator.geolocation){showToast('GPS no disponible','err');return;}
+  showToast('Obteniendo ubicación...');
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const lat=pos.coords.latitude.toFixed(6);
+    const lng=pos.coords.longitude.toFixed(6);
+    const acc=Math.round(pos.coords.accuracy);
+    document.getElementById('latitud').value=lat;
+    document.getElementById('longitud').value=lng;
+    document.getElementById('precision').value=acc;
+    const r=document.getElementById('gps-result');
+    r.style.display='block';
+    r.textContent=`Lat: ${lat}  |  Lng: ${lng}  |  ±${acc} m`;
+    showToast('Ubicación obtenida ✓','ok');
+  },()=>showToast('No se pudo obtener GPS','err'),{enableHighAccuracy:true,timeout:10000});
+}
+
+// ── VALIDACIÓN COTAS ──
+function validarCotas(){
+  const cards=document.querySelectorAll('.estrato-card');
+  const profTotal=parseFloat(document.getElementById('profTotal').value)||null;
+  let errores=[], anterior=null;
+  cards.forEach((card,i)=>{
+    const id=card.dataset.id;
+    const ini=parseFloat(document.getElementById('e'+id+'-inicio')?.value);
+    const fin=parseFloat(document.getElementById('e'+id+'-fin')?.value);
+    const inpIni=document.getElementById('e'+id+'-inicio');
+    const inpFin=document.getElementById('e'+id+'-fin');
+    if(inpIni) inpIni.classList.remove('cota-err');
+    if(inpFin) inpFin.classList.remove('cota-err');
+    if(!isNaN(ini)&&!isNaN(fin)){
+      if(fin<=ini){ errores.push(`Estrato ${i+1}: fin debe ser mayor que inicio`); if(inpFin) inpFin.classList.add('cota-err'); }
+      if(anterior!==null&&Math.abs(ini-anterior)>0.001){ errores.push(`Estrato ${i+1}: inicio (${ini}m) no coincide con fin anterior (${anterior}m)`); if(inpIni) inpIni.classList.add('cota-err'); }
+      anterior=fin;
+    }
+  });
+  if(profTotal!==null&&anterior!==null&&Math.abs(anterior-profTotal)>0.001)
+    errores.push(`Prof. final de estratos (${anterior}m) ≠ profundidad total (${profTotal}m)`);
+  const el=document.getElementById('validacion-cotas');
+  if(errores.length===0&&cards.length>0&&anterior!==null){ el.className='validacion-cotas ok'; el.textContent='✓ Cotas correctas'; }
+  else if(errores.length>0){ el.className='validacion-cotas err'; el.innerHTML=errores.map(e=>'⚠ '+e).join('<br>'); }
+  else el.className='validacion-cotas';
+}
+
+// ── SUCS → CAMPOS ──
+function aplicarReglaSUCS(n,sucs){
+  const desc=document.getElementById('e'+n+'-sucs-desc');
+  if(desc) desc.textContent=SUCS_MAP[sucs]||'';
+  const show=(id,cond)=>{ const el=document.getElementById('blk-'+id+'-'+n); if(el) el.style.display=cond?'':'none'; };
+  const esGran=ES_GRANULAR.includes(sucs)||!sucs;
+  const esGrav=ES_GRAVA.includes(sucs)||!sucs;
+  const esFino=ES_FINO.includes(sucs)||!sucs;
+  const esRoca=ES_ROCA.includes(sucs);
+  const tiPlast=TIENE_PLAST.includes(sucs)||!sucs;
+  show('graduacion', esGran||!sucs);
+  show('bolones',    esGran||!sucs);
+  show('tmaxgrava',  esGrav||!sucs);
+  show('forma',      esGran||!sucs);
+  show('plast',      tiPlast);
+  show('dilat',      esFino||!sucs);
+  show('resseca',    esFino||!sucs);
+  show('consist',    esFino||!sucs);
+  show('compact',    esGran||!sucs);
+  show('cement',     !esRoca&&!sucs||(esGran||esFino));
+  show('roca',       esRoca);
+  show('matorg',     !esRoca);
+  actualizarGraduacion(n);
+}
+
+// ── GRADUACIÓN ──
+function actualizarGraduacion(n){
+  const pG=parseFloat(document.getElementById('e'+n+'-pctGravas')?.value)||0;
+  const pA=parseFloat(document.getElementById('e'+n+'-pctArenas')?.value)||0;
+  const pF=parseFloat(document.getElementById('e'+n+'-pctFinos')?.value)||0;
+  const total=pG+pA+pF;
+  const el=document.getElementById('grad-total-'+n);
+  if(!el) return;
+  if(Math.abs(total-100)<0.5){ el.className='grad-total ok'; el.textContent='✓ Graduación: '+total.toFixed(0)+'% (correcto)'; }
+  else if(total===0){ el.className='grad-total warn'; el.textContent='Ingrese % gravas + arenas + finos = 100%'; }
+  else{ el.className='grad-total err'; el.textContent='⚠ Graduación: '+total.toFixed(0)+'% — debe sumar 100%'; }
+}
+
+// ── MUESTRAS ──
+function agregarMuestra(n){
+  const tbody=document.getElementById('muestras-body-'+n);
+  const ini=parseFloat(document.getElementById('e'+n+'-inicio')?.value)||0;
+  const fin=parseFloat(document.getElementById('e'+n+'-fin')?.value)||0;
+  const mid=ini>0||fin>0?((ini+fin)/2).toFixed(2):'';
+  const tr=document.createElement('tr');
+  tr.innerHTML=`
+    <td><select onchange="autoEnsayo(this)" style="min-width:90px">
+      <option value="">—</option>
+      <optgroup label="Inalteradas"><option value="MIG">MIG</option><option value="MIM">MIM</option><option value="MIP">MIP</option></optgroup>
+      <optgroup label="Sacos"><option value="1 saco">1 saco</option><option value="2 sacos">2 sacos</option><option value="3 sacos">3 sacos</option><option value="4 sacos">4 sacos</option></optgroup>
+    </select></td>
+    <td><input type="number" step="0.05" min="${(ini+0.01).toFixed(2)}" max="${(fin-0.01).toFixed(2)}" value="${mid}" style="width:75px;text-align:center" onblur="validarCotaMuestra(this,${ini},${fin})"></td>
+    <td><input type="text" placeholder="Ensayo" style="min-width:110px"></td>
+    <td><button class="btn-del-muestra" onclick="this.closest('tr').remove()">×</button></td>`;
+  tbody.appendChild(tr);
+}
+function autoEnsayo(sel){
+  const map={'MIG':'Corte directo / triaxial','MIM':'Consolidación (oedómetro)','MIP':'Compresión simple','1 saco':'Clasificación SUCS + Atterberg','2 sacos':'Clasificación + Proctor','3 sacos':'Clasificación + CBR','4 sacos':'Clasif. + CBR + Proctor'};
+  const row=sel.closest('tr');
+  const inp=row.querySelectorAll('input')[1];
+  if(inp&&map[sel.value]) inp.value=map[sel.value];
+}
+function validarCotaMuestra(inp,ini,fin){
+  const v=parseFloat(inp.value);
+  if(isNaN(v)) return;
+  if(v<=ini||v>=fin){ inp.classList.add('cota-err'); showToast(`Cota debe estar entre ${(ini+0.01).toFixed(2)} y ${(fin-0.01).toFixed(2)} m`,'err'); }
+  else inp.classList.remove('cota-err');
+}
+
+// ── AGREGAR ESTRATO ──
+function agregarEstrato(){
+  estratoCount++;
+  const n=estratoCount;
+  const cards=document.querySelectorAll('.estrato-card');
+  let inicioSug='';
+  if(cards.length>0){
+    const lastId=cards[cards.length-1].dataset.id;
+    const lf=document.getElementById('e'+lastId+'-fin')?.value;
+    if(lf) inicioSug=lf;
+  }
+  const div=document.createElement('div');
+  div.className='estrato-card'; div.dataset.id=n; div.id='estrato-'+n;
+  div.innerHTML=`
+    <div class="estrato-header">
+      <span>Estrato ${n}</span>
+      <button onclick="eliminarEstrato(${n})">Eliminar</button>
+    </div>
+
+    <!-- Profundidades -->
+    <div class="estrato-row">
+      <div class="sub-field"><label>Prof. inicio (m)</label>
+        <input type="number" id="e${n}-inicio" value="${inicioSug}" placeholder="0.00" step="0.05" min="0" oninput="validarCotas()"></div>
+      <div class="sub-field"><label>Prof. fin (m)</label>
+        <input type="number" id="e${n}-fin" placeholder="0.50" step="0.05" min="0" oninput="validarCotas();actualizarGraduacion(${n})"></div>
+    </div>
+
+    <!-- SUCS -->
+    <div class="estrato-field">
+      <label>Clasificación SUCS</label>
+      <select id="e${n}-sucs" onchange="aplicarReglaSUCS(${n},this.value)">
+        <option value="">— seleccionar —</option>
+        <optgroup label="── Gravas simples">
+          <option value="GW">GW — Grava bien graduada</option>
+          <option value="GP">GP — Grava mal graduada</option>
+          <option value="GM">GM — Grava limosa</option>
+          <option value="GC">GC — Grava arcillosa</option>
+        </optgroup>
+        <optgroup label="── Gravas dobles (frontera)">
+          <option value="GW-GM">GW-GM — Grava b.grad. con limo</option>
+          <option value="GW-GC">GW-GC — Grava b.grad. con arcilla</option>
+          <option value="GP-GM">GP-GM — Grava m.grad. con limo</option>
+          <option value="GP-GC">GP-GC — Grava m.grad. con arcilla</option>
+        </optgroup>
+        <optgroup label="── Arenas simples">
+          <option value="SW">SW — Arena bien graduada</option>
+          <option value="SP">SP — Arena mal graduada</option>
+          <option value="SM">SM — Arena limosa</option>
+          <option value="SC">SC — Arena arcillosa</option>
+        </optgroup>
+        <optgroup label="── Arenas dobles (frontera)">
+          <option value="SW-SM">SW-SM — Arena b.grad. con limo</option>
+          <option value="SW-SC">SW-SC — Arena b.grad. con arcilla</option>
+          <option value="SP-SM">SP-SM — Arena m.grad. con limo</option>
+          <option value="SP-SC">SP-SC — Arena m.grad. con arcilla</option>
+        </optgroup>
+        <optgroup label="── Suelos finos">
+          <option value="ML">ML — Limo baja plasticidad</option>
+          <option value="CL">CL — Arcilla baja-media plast.</option>
+          <option value="OL">OL — Limo/arcilla orgánica baja</option>
+          <option value="MH">MH — Limo alta plasticidad</option>
+          <option value="CH">CH — Arcilla alta plasticidad</option>
+          <option value="OH">OH — Arcilla/limo orgánico alta</option>
+          <option value="PT">PT — Turba / altamente orgánico</option>
+        </optgroup>
+        <optgroup label="── Roca">
+          <option value="ROCA-SED">Roca sedimentaria</option>
+          <option value="ROCA-IGN">Roca ígnea</option>
+          <option value="ROCA-MET">Roca metamórfica</option>
+        </optgroup>
+        <optgroup label="── Rellenos">
+          <option value="RELL-C">Relleno controlado</option>
+          <option value="RELL-CONT">Relleno contaminado</option>
+        </optgroup>
+        <option value="OTRO">Otro / no clasificado</option>
+      </select>
+      <div class="sucs-desc" id="e${n}-sucs-desc"></div>
+    </div>
+
+    <!-- Nombre local -->
+    <div class="estrato-field">
+      <label>Nombre local o típico (opcional)</label>
+      <select id="e${n}-nombreLocal">
+        <option value="">— ninguno —</option>
+        ${NOMBRES_LOCALES.map(nl=>`<option value="${nl}">${nl}</option>`).join('')}
+      </select>
+      <input type="text" id="e${n}-nombreLocalOtro" placeholder="Especificar nombre local..." style="display:none;margin-top:6px">
+    </div>
+
+    <!-- Roca (campos adicionales, ocultos por defecto) -->
+    <div id="blk-roca-${n}" class="estrato-field" style="display:none">
+      <label>Tipo de roca / descripción</label>
+      <input type="text" id="e${n}-tipoRoca" placeholder="Ej: Granito, Arenisca, Basalto...">
+    </div>
+
+    <!-- Graduación -->
+    <div id="blk-graduacion-${n}">
+      <div id="blk-bolones-${n}" class="estrato-row">
+        <div class="sub-field"><label>% Bolones (>3")</label>
+          <input type="number" id="e${n}-pctBolones" placeholder="0" min="0" max="100" step="1" oninput="actualizarGraduacion(${n})"></div>
+        <div class="sub-field"><label>Tmáx bolones</label>
+          <input type="text" id="e${n}-tmaxBolones" placeholder='Ej: 6"'></div>
+      </div>
+      <div class="grad-row">
+        <div class="sub-field" id="blk-tmaxgrava-${n}">
+          <label>% Gravas</label>
+          <input type="number" id="e${n}-pctGravas" placeholder="0" min="0" max="100" step="1" oninput="actualizarGraduacion(${n})">
+        </div>
+        <div class="sub-field">
+          <label>% Arenas</label>
+          <input type="number" id="e${n}-pctArenas" placeholder="0" min="0" max="100" step="1" oninput="actualizarGraduacion(${n})">
+        </div>
+        <div class="sub-field">
+          <label>% Finos</label>
+          <input type="number" id="e${n}-pctFinos" placeholder="0" min="0" max="100" step="1" oninput="actualizarGraduacion(${n})">
+        </div>
+      </div>
+      <div class="grad-total warn" id="grad-total-${n}">Ingrese % gravas + arenas + finos = 100%</div>
+      <div class="estrato-row" style="border-bottom:0.5px solid #ebebeb">
+        <div class="sub-field">
+          <label>Tmáx partículas</label>
+          <input type="text" id="e${n}-tmaxPart" placeholder='Ej: 3"'>
+        </div>
+        <div class="sub-field">
+          <label>T predominante</label>
+          <input type="text" id="e${n}-tPred" placeholder='Ej: 1"'>
+        </div>
+      </div>
+    </div>
+
+    <!-- Color principal -->
+    <div class="estrato-field">
+      <label>Color principal</label>
+      ${makeColorChips('colorP-'+n)}
+    </div>
+
+    <!-- Color secundario -->
+    <div class="estrato-field">
+      <label>Color secundario (opcional)</label>
+      ${makeColorChips('colorS-'+n)}
+      <div style="margin-top:8px">${makeChips(['Con manchas','Con bandas'],'manchas-'+n)}</div>
+    </div>
+
+    <!-- Humedad -->
+    <div class="estrato-field">
+      <label>Humedad</label>
+      ${makeChips(['Seco','Húmedo','Mojado','Saturado'],'humedad-'+n)}
+    </div>
+
+    <!-- Compacidad (granulares) -->
+    <div id="blk-compact-${n}" class="estrato-field">
+      <label>Compacidad natural (suelos gruesos)</label>
+      ${makeChips(['Suelta','Media','Alta'],'compact-'+n)}
+    </div>
+
+    <!-- Consistencia (finos) -->
+    <div id="blk-consist-${n}" class="estrato-field">
+      <label>Consistencia (suelos finos)</label>
+      ${makeChips(['Muy blanda','Blanda','Media','Firme','Muy firme','Dura'],'consist-'+n)}
+    </div>
+
+    <!-- Plasticidad -->
+    <div id="blk-plast-${n}" class="estrato-field">
+      <label>Plasticidad</label>
+      ${makeChips(['Nula','Baja','Media','Alta'],'plast-'+n)}
+    </div>
+
+    <!-- Graduación cualitativa -->
+    <div id="blk-forma-${n}" class="estrato-field">
+      <label>Forma de las partículas (gravas/arenas)</label>
+      ${makeChips(['Angular','Subangular','Subredondeado','Redondeado'],'forma-'+n)}
+    </div>
+
+    <!-- Dilatancia -->
+    <div id="blk-dilat-${n}" class="estrato-field">
+      <label>Dilatancia</label>
+      ${makeChips(['Nula','Lenta','Rápida'],'dilat-'+n)}
+    </div>
+
+    <!-- Resistencia seca -->
+    <div id="blk-resseca-${n}" class="estrato-field">
+      <label>Resistencia seca</label>
+      ${makeChips(['Nula','Muy baja','Baja','Media','Alta','Muy alta'],'resseca-'+n)}
+    </div>
+
+    <!-- Estructura -->
+    <div class="estrato-field">
+      <label>Estructura</label>
+      ${makeChips(['Homogéneo','Estratificado','Laminado','Fisurado','Adobe','Lenticular','Vesicular','Migajón','Poroso'],'struct-'+n,true)}
+    </div>
+
+    <!-- Cementación -->
+    <div id="blk-cement-${n}" class="estrato-field">
+      <label>Cementación</label>
+      ${makeChips(['Nula','Débil','Moderada','Fuerte'],'cement-'+n)}
+    </div>
+
+    <!-- Materia orgánica -->
+    <div id="blk-matorg-${n}" class="estrato-field">
+      <label>Materia orgánica / raíces</label>
+      ${makeChips(['Sin indicios','Raicillas dispersas','Raíces medianas','Abundante materia orgánica'],'matorg-'+n,true)}
+    </div>
+
+    <!-- Olor -->
+    <div class="estrato-field">
+      <label>Olor</label>
+      ${makeChips(['Ninguno','Térreo','Orgánico'],'olor-'+n,true)}
+    </div>
+
+    <!-- Origen -->
+    <div class="estrato-field">
+      <label>Origen</label>
+      ${makeChips(['Residual','Transportado','Relleno controlado','Relleno contaminado'],'origen-'+n,true)}
+    </div>
+
+    <!-- Muestras -->
+    <div class="estrato-field">
+      <label>Muestras del estrato</label>
+      <table class="muestra-tabla">
+        <thead><tr><th>Tipo</th><th>Cota (m)</th><th>Ensayo</th><th></th></tr></thead>
+        <tbody id="muestras-body-${n}"></tbody>
+      </table>
+      <button class="btn-add-muestra" onclick="agregarMuestra(${n})">+ Agregar muestra</button>
+    </div>
+
+    <!-- Observaciones del estrato -->
+    <div class="estrato-field">
+      <label>Observaciones del estrato</label>
+      <textarea id="e${n}-obs" placeholder="Inclusiones, partículas meteorizadas, etc."></textarea>
+    </div>`;
+
+  document.getElementById('estratos-container').appendChild(div);
+
+  // Nombre local "Otro"
+  document.getElementById('e'+n+'-nombreLocal').addEventListener('change',function(){
+    document.getElementById('e'+n+'-nombreLocalOtro').style.display=this.value==='Otro...'?'block':'none';
+  });
+
+  aplicarReglaSUCS(n,'');
+  validarCotas();
+}
+
+function eliminarEstrato(n){
+  const el=document.getElementById('estrato-'+n);
+  if(el){ el.remove(); validarCotas(); }
+}
+
+// ── FOTOS ──
+function agregarFotos(input){
+  Array.from(input.files).forEach(file=>{
+    const reader=new FileReader();
+    reader.onload=e=>{ fotosData.push({name:file.name,dataUrl:e.target.result}); renderFotos(); };
+    reader.readAsDataURL(file);
+  });
+  input.value='';
+}
+function renderFotos(){
+  const preview=document.getElementById('fotos-preview');
+  preview.innerHTML='';
+  fotosData.forEach((f,i)=>{
+    const d=document.createElement('div'); d.className='foto-thumb';
+    d.innerHTML=`<img src="${f.dataUrl}" alt="foto ${i+1}"><button class="del-foto" onclick="eliminarFoto(${i})">×</button>`;
+    preview.appendChild(d);
+  });
+  document.getElementById('btn-descargar-fotos-wrap').style.display=fotosData.length>0?'block':'none';
+}
+function eliminarFoto(i){ fotosData.splice(i,1); renderFotos(); }
+function descargarFotosLocal(){
+  fotosData.forEach((f,i)=>{ const a=document.createElement('a'); a.href=f.dataUrl; a.download=f.name||`foto_${i+1}.jpg`; a.click(); });
+  showToast(`${fotosData.length} foto(s) descargada(s)`,'ok');
+}
+
+// ── ENVIAR ──
+async function enviar(){
+  const btn=document.getElementById('btn-submit');
+  const pVal=document.getElementById('proyecto').value;
+  const proyNombre=pVal==='__nuevo__'?document.getElementById('nuevo-proyecto').value.trim():pVal;
+  if(!proyNombre){showToast('Selecciona o crea un proyecto','err');return;}
+  if(!document.getElementById('idCalicata').value){showToast('Ingresa el ID de la calicata','err');return;}
+  const cards=document.querySelectorAll('.estrato-card');
+  if(cards.length===0){showToast('Agrega al menos un estrato','err');return;}
+
+  // Validar graduación
+  let gradErr=false;
+  cards.forEach(card=>{
+    const id=card.dataset.id;
+    const pG=parseFloat(document.getElementById('e'+id+'-pctGravas')?.value)||0;
+    const pA=parseFloat(document.getElementById('e'+id+'-pctArenas')?.value)||0;
+    const pF=parseFloat(document.getElementById('e'+id+'-pctFinos')?.value)||0;
+    const t=pG+pA+pF;
+    if(t>0&&Math.abs(t-100)>0.5) gradErr=true;
+  });
+  if(gradErr){showToast('Corrige la graduación (debe sumar 100%)','err');return;}
+
+  if(pVal==='__nuevo__'&&proyNombre&&!proyectos.includes(proyNombre)){
+    proyectos.push(proyNombre);
+    localStorage.setItem('proy_v3',JSON.stringify(proyectos));
+    initProyectos();
+    document.getElementById('proyecto').value=proyNombre;
+  }
+
+  const base={
+    proyecto:proyNombre,
+    idCalicata:document.getElementById('idCalicata').value,
+    fecha:document.getElementById('fecha').value,
+    latitud:document.getElementById('latitud').value||'',
+    longitud:document.getElementById('longitud').value||'',
+    precision:document.getElementById('precision').value||'',
+    profTotal:document.getElementById('profTotal').value||'',
+    nivelFreatico:document.getElementById('nivelFreatico').value||'No detectado',
+    obsGenerales:document.getElementById('observaciones').value||''
+  };
+
+  const rows=[];
+  cards.forEach((card,i)=>{
+    const id=card.dataset.id;
+    const sucs=document.getElementById('e'+id+'-sucs')?.value||'';
+    const nlSel=document.getElementById('e'+id+'-nombreLocal')?.value||'';
+    const nlOtro=document.getElementById('e'+id+'-nombreLocalOtro')?.value||'';
+    const nombreLocal=nlSel==='Otro...'?nlOtro:nlSel;
+    const muestras=[];
+    card.querySelectorAll('#muestras-body-'+id+' tr').forEach(tr=>{
+      const cels=tr.querySelectorAll('td');
+      if(cels.length>=3){
+        const tipo=cels[0].querySelector('select')?.value||'';
+        const cota=cels[1].querySelector('input')?.value||'';
+        const ensayo=cels[2].querySelector('input')?.value||'';
+        if(tipo) muestras.push({tipo,cota,ensayo});
+      }
+    });
+    rows.push({...base,
+      nEstrato:i+1,
+      profInicio:document.getElementById('e'+id+'-inicio')?.value||'',
+      profFin:document.getElementById('e'+id+'-fin')?.value||'',
+      sucs,
+      nombreSuelo:SUCS_MAP[sucs]||sucs,
+      nombreLocal,
+      colorPrincipal:getChip('colorP-'+id),
+      colorSecundario:getChip('colorS-'+id),
+      manchas:getChip('manchas-'+id),
+      humedad:getChip('humedad-'+id),
+      consistencia:getChip('consist-'+id),
+      compacidad:getChip('compact-'+id),
+      plasticidad:getChip('plast-'+id),
+      formaParticulas:getChip('forma-'+id),
+      dilatancia:getChip('dilat-'+id),
+      resistenciaSeca:getChip('resseca-'+id),
+      estructura:getChip('struct-'+id),
+      cementacion:getChip('cement-'+id),
+      materiaOrganica:getChip('matorg-'+id),
+      olor:getChip('olor-'+id),
+      origen:getChip('origen-'+id),
+      pctBolones:document.getElementById('e'+id+'-pctBolones')?.value||'',
+      tmaxBolones:document.getElementById('e'+id+'-tmaxBolones')?.value||'',
+      tmaxParticulas:document.getElementById('e'+id+'-tmaxPart')?.value||'',
+      tPredominante:document.getElementById('e'+id+'-tPred')?.value||'',
+      pctGravas:document.getElementById('e'+id+'-pctGravas')?.value||'',
+      pctArenas:document.getElementById('e'+id+'-pctArenas')?.value||'',
+      pctFinos:document.getElementById('e'+id+'-pctFinos')?.value||'',
+      tipoMuestra:muestras.map(m=>m.tipo).join(' | '),
+      cotaMuestra:muestras.map(m=>m.cota+'m').join(' | '),
+      ensayo:muestras.map(m=>m.ensayo).join(' | '),
+      obsEstrato:document.getElementById('e'+id+'-obs')?.value||'',
+      fotos:fotosData.map(f=>f.name).join(' | ')
+    });
+  });
+
+  btn.disabled=true; btn.textContent='Guardando...';
+  showToast('Enviando datos...');
+  let enviados=0, fallidos=[];
+  for(const row of rows){
+    try{
+      await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(row)});
+      enviados++;
+    }catch(e){
+      const pend=getPendientes(); pend.push(row); setPendientes(pend); fallidos.push(row.nEstrato);
+    }
+  }
+  if(fallidos.length===0) showToast(`${base.idCalicata} guardada (${rows.length} estrato${rows.length>1?'s':''}) ✓`,'ok');
+  else showToast(`${enviados} ok, ${fallidos.length} guardado(s) offline`,'err');
+  mostrarPendientes();
+  btn.style.display='none';
+  document.getElementById('btn-nueva').style.display='block';
+}
+
+function nuevaCalicata(){
+  ['idCalicata','profTotal','nivelFreatico','observaciones','latitud','longitud','precision'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('gps-result').style.display='none';
+  document.getElementById('estratos-container').innerHTML='';
+  document.getElementById('validacion-cotas').className='validacion-cotas';
+  document.getElementById('fotos-preview').innerHTML='';
+  document.getElementById('btn-descargar-fotos-wrap').style.display='none';
+  fotosData=[]; estratoCount=0;
+  document.getElementById('btn-submit').style.display='block';
+  document.getElementById('btn-submit').disabled=false;
+  document.getElementById('btn-submit').textContent='Guardar en la nube';
+  document.getElementById('btn-nueva').style.display='none';
+  updateHeader(); window.scrollTo(0,0);
+}
+
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show'+(type?' '+type:'');
+  clearTimeout(t._timer); t._timer=setTimeout(()=>t.className='toast',2800);
+}
+
+document.getElementById('fecha').value=new Date().toISOString().split('T')[0];
+initProyectos();
+mostrarPendientes();
+agregarEstrato();
+</script>
+</body>
+</html>
