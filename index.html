@@ -150,6 +150,7 @@ body{font-family:system-ui,-apple-system,sans-serif;font-size:15px;background:#f
     <button onclick="nuevaCal()" style="background:var(--vo);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer">+ Nueva</button>
   </div>
   <div class="plist" id="clist"></div>
+  <div class="bw" style="margin-top:0"><button class="btn btn-s" id="btn-pdf-proy" onclick="expProyecto()" style="display:none">📄 Exportar proyecto completo</button></div>
 </div>
 
 <!-- ── PANTALLA 4: FORMULARIO CALICATA ── -->
@@ -291,7 +292,9 @@ function abrirP(i) {
 }
 function renCals() {
   const p=proys[curP], el=document.getElementById('clist');
-  if(!p.cals||!p.cals.length) { el.innerHTML='<div style="text-align:center;padding:24px;color:var(--gr)">Sin calicatas. Toca + Nueva.</div>'; return; }
+  const btnProy = document.getElementById('btn-pdf-proy');
+  if(!p.cals||!p.cals.length) { el.innerHTML='<div style="text-align:center;padding:24px;color:var(--gr)">Sin calicatas. Toca + Nueva.</div>'; if(btnProy) btnProy.style.display='none'; return; }
+  if(btnProy) btnProy.style.display='flex';
   el.innerHTML='';
   p.cals.forEach((c,i) => {
     const d=document.createElement('div'); d.className='ci';
@@ -573,13 +576,13 @@ function addE() {
     </div>
     <div class="ef"><label>Olor</label>${mkChips(['Ninguno','Térreo','Orgánico'],'ol-'+n,true)}</div>
     <div id="blk-di-${n}" class="ef" style="display:none"><label>Dilatancia</label>${mkChips(['Nula','Lenta','Rápida','No realizado'],'di-'+n)}</div>
-    <div id="blk-rs-${n}" class="ef" style="display:none"><label>Resistencia seca</label>${mkChips(['Nula','Muy baja','Baja','Media','Alta','Muy alta','No realizado'],'rs-'+n)}</div>
+    <div id="blk-rs-${n}" class="ef" style="display:none"><label>Resistencia seca</label>${mkChips(['Nula','Nula a Muy baja','Muy baja','Muy baja a Baja','Baja','Baja a Media','Media','Media a Alta','Alta','Alta a Muy alta','Muy alta','No realizado'],'rs-'+n)}</div>
     <div id="blk-pl-${n}" class="ef" style="display:none"><label>Plasticidad</label>${mkChips(['Nula','Nula a Baja','Baja','Baja a Media','Media','Media a Alta','Alta','NP'],'pl-'+n)}</div>
     <div id="blk-fo-${n}" class="ef" style="display:none"><label>Forma de partículas</label>${mkChips(['Angular','Angular a Subangular','Subangular','Subangular a Subredondeado','Subredondeado','Subredondeado a Redondeado','Redondeado'],'fo-'+n)}</div>
-    <div class="ef"><label>Humedad</label>${mkChips(['Seco','Húmedo','Mojado','Saturado'],'hu-'+n)}</div>
+    <div class="ef"><label>Humedad</label>${mkChips(['Seco','Seco a Húmedo','Húmedo','Húmedo a Mojado','Mojado','Mojado a Saturado','Saturado'],'hu-'+n)}</div>
     <div id="blk-co-${n}" class="ef" style="display:none"><label>Compacidad</label>${mkChips(['Suelta','Suelta a Media','Media','Media a Densa','Densa'],'co-'+n)}</div>
     <div id="blk-cn-${n}" class="ef" style="display:none"><label>Consistencia</label>${mkChips(['Muy blanda','Muy blanda a Blanda','Blanda','Blanda a Media','Media','Media a Firme','Firme','Firme a Muy firme','Muy firme','Muy firme a Dura','Dura'],'cn-'+n)}</div>
-    <div class="ef"><label>Estructura</label>${mkChips(['Homogéneo','Estratificado','Laminado','Fisurado','Adobe','Lenticular','Vesicular','Migajón','Poroso'],'st-'+n,true)}</div>
+    <div class="ef"><label>Estructura</label>${mkChips(['Homogéneo','Granular simple','Estratificado','Laminado','Fisurado','Adobe','Lenticular','Vesicular','Migajón','Poroso'],'st-'+n,true)}</div>
     <div class="ef"><label>Cementación</label>${mkChips(['Nula','Débil','Moderada','Fuerte'],'ce-'+n)}</div>
     <div class="ef"><label>Origen</label>${mkChips(['Residual','Transportado','Relleno controlado','Relleno contaminado'],'or-'+n,true)}</div>
     <div class="ef"><label>Materia orgánica / raíces</label>${mkChips(['Sin indicios','Raicillas dispersas','Raíces medianas','Abundante materia orgánica'],'mo-'+n,true)}</div>
@@ -700,17 +703,59 @@ async function guardarCal() {
 }
 
 // ── EXPORTAR PDF ──
+function bldPDF(pr,cal) {
+  const cont=document.getElementById('pdfct'); cont.innerHTML='';
+  bldPDFPages(pr,cal,cont);
+  const oldTitle = document.title;
+  document.title = pr.nom.replace(/\s+/g,'_') + '_' + cal.id;
+  document.querySelectorAll('#pdfct .pp').forEach(p=>p.style.display='flex');
+  document.querySelectorAll('.screen').forEach(s=>s.style.display='none');
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>{
+      document.querySelectorAll('#pdfct .pp').forEach(p=>p.style.display='none');
+      document.querySelectorAll('.screen').forEach(s=>s.style.display='none');
+      document.getElementById('sdp').style.display='block';
+      document.getElementById('sdp').classList.add('active');
+      document.title = oldTitle;
+    },800);
+  },300);
+}
 function expCal(i) { bldPDF(proys[curP], proys[curP].cals[i]); }
+function expProyecto() {
+  const pr = proys[curP];
+  if(!pr.cals||!pr.cals.length) { toast('No hay calicatas en este proyecto','err'); return; }
+  // Construir PDF con todas las calicatas en secuencia
+  const cont = document.getElementById('pdfct'); cont.innerHTML='';
+  pr.cals.forEach(cal => {
+    bldPDFPages(pr, cal, cont);
+  });
+  const oldTitle = document.title;
+  document.title = pr.nom.replace(/\s+/g,'_') + '_Estratigrafía_Completa';
+  document.querySelectorAll('#pdfct .pp').forEach(p=>p.style.display='flex');
+  document.querySelectorAll('.screen').forEach(s=>s.style.display='none');
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>{
+      document.querySelectorAll('#pdfct .pp').forEach(p=>p.style.display='none');
+      document.querySelectorAll('.screen').forEach(s=>s.style.display='none');
+      document.getElementById('sdp').style.display='block';
+      document.getElementById('sdp').classList.add('active');
+      document.title = oldTitle;
+    },800);
+  },300);
+}
+
 function expPDF() {
   const p=proys[curP], cid=document.getElementById('c-id').value.trim();
   const cal=p.cals&&p.cals.find(c=>c.id===cid);
   if(!cal) { toast('Guarda primero la calicata','err'); return; }
   bldPDF(p,cal);
 }
-function bldPDF(pr,cal) {
+function bldPDFPages(pr,cal,cont) {
   const HPAG=6, hs=cal.hs||[];
   const pages=[]; for(let i=0;i<Math.max(1,hs.length);i+=HPAG) pages.push(hs.slice(i,i+HPAG));
-  const nP=pages.length, cont=document.getElementById('pdfct'); cont.innerHTML='';
+  const nP=pages.length;
   const tms=[]; hs.forEach(h=>{(h.ms||[]).forEach(m=>tms.push({h:`H-${h.n}`,co:m.co,t:m.t,e:m.e}))}); tms.sort((a,b)=>parseFloat(a.co)-parseFloat(b.co));
   const V='#76892F',VO='#5A6A1A',VF='#EDF1E0',VC='#C8D4A0';
   const th=t=>`<th style="background:${V};color:white;border:0.5px solid ${VO};padding:2px;font-size:7px;text-align:center">${t}</th>`;
@@ -756,17 +801,6 @@ function bldPDF(pr,cal) {
     h+=`<div style="text-align:center;font-size:7px;color:#666;margin-top:4mm;border-top:1px solid ${VC};padding-top:2px">Calle Francia N°188, Temuco. E-mail: contacto@geoc.cl — FM04 v1 — Página ${pi+1} de ${nP}</div>`;
     pg.innerHTML=h; cont.appendChild(pg);
   });
-  document.querySelectorAll('#pdfct .pp').forEach(p=>p.style.display='flex');
-  document.querySelectorAll('.screen').forEach(s=>s.style.display='none');
-  setTimeout(()=>{
-    window.print();
-    setTimeout(()=>{
-      document.querySelectorAll('#pdfct .pp').forEach(p=>p.style.display='none');
-      document.querySelectorAll('.screen').forEach(s=>s.style.display='');
-      document.getElementById('sc').style.display='none';
-      document.getElementById('sdp').style.display='block';
-    },500);
-  },300);
 }
 
 // ── TOAST ──
