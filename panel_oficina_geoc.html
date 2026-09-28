@@ -169,7 +169,7 @@ function procesarDatos(rows) {
     const proy = row['Proyecto'] || '';
     const calId = row['ID Calicata'] || '';
     const uid = getCol(row,'CalicataUID') || (proy+'_'+calId);
-    const nHor = String(parseInt(getCol(row,'N° Horizonte','N\u00b0 Horizonte','No Horizonte','N Horizonte')||'1'));
+    const nHor = String(parseInt(getCol(row,'Nº Horizonte','N\u00ba Horizonte','N° Horizonte','N\u00b0 Horizonte','No Horizonte','N Horizonte')||'1'));
     if(!proy) return;
     if(!todosProyectos[proy]) {
       todosProyectos[proy] = {
@@ -201,9 +201,9 @@ function procesarDatos(rows) {
     // Agregar horizonte
     const cal = p.calicatas[calId];
     // Evitar duplicados de horizonte
-    if(!cal.hs.find(h=>String(h.n)===String(nHor))) {
+    if(!cal.hs.find(h=>parseInt(h.n)===parseInt(nHor))) {
       cal.hs.push({
-        n: nHor,
+        n: parseInt(nHor),
         ini: row['Prof. Inicio (m)'] || '',
         fin: row['Prof. Fin (m)'] || '',
         pBol: row['% Bolones'] || '',
