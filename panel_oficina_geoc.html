@@ -115,6 +115,7 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f0eb;color:var(--
             <th>UTM</th>
             <th>Condición</th>
             <th style="width:80px">PDF</th>
+            <th style="width:80px">Editar</th>
           </tr>
         </thead>
         <tbody id="cal-tbody"></tbody>
@@ -126,8 +127,38 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f0eb;color:var(--
 <div class="toast" id="toast"></div>
 <div id="pdf-container"></div>
 
+<!-- MODAL EDICIÓN -->
+<div id="modal-edit" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;overflow-y:auto">
+  <div style="background:#fff;max-width:860px;margin:40px auto;border-radius:14px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <div style="background:var(--vo);color:#fff;padding:16px 24px;display:flex;align-items:center;justify-content:space-between">
+      <h2 id="modal-titulo" style="font-size:16px;font-weight:600"></h2>
+      <button onclick="cerrarModal()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1">×</button>
+    </div>
+    <div style="padding:20px 24px">
+      <!-- Datos generales -->
+      <div style="background:var(--vf);border-radius:8px;padding:14px;margin-bottom:16px">
+        <div style="font-weight:600;color:var(--vo);margin-bottom:10px;font-size:13px">📋 DATOS GENERALES</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <label style="font-size:12px;color:var(--gr)">Fecha<input id="ed-fecha" type="date" style="display:block;width:100%;margin-top:3px;padding:6px 8px;border:0.5px solid #ddd;border-radius:6px;font-size:13px"></label>
+          <label style="font-size:12px;color:var(--gr)">Prof. Total (m)<input id="ed-pt" type="text" style="display:block;width:100%;margin-top:3px;padding:6px 8px;border:0.5px solid #ddd;border-radius:6px;font-size:13px"></label>
+          <label style="font-size:12px;color:var(--gr)">Condición Meteorológica<input id="ed-met" type="text" style="display:block;width:100%;margin-top:3px;padding:6px 8px;border:0.5px solid #ddd;border-radius:6px;font-size:13px"></label>
+          <label style="font-size:12px;color:var(--gr)">Nivel Freático (m)<input id="ed-nf" type="text" style="display:block;width:100%;margin-top:3px;padding:6px 8px;border:0.5px solid #ddd;border-radius:6px;font-size:13px"></label>
+          <label style="font-size:12px;color:var(--gr)">Obs. Nivel Freático<input id="ed-nfobs" type="text" style="display:block;width:100%;margin-top:3px;padding:6px 8px;border:0.5px solid #ddd;border-radius:6px;font-size:13px"></label>
+          <label style="font-size:12px;color:var(--gr)">Obs. Generales<input id="ed-obs" type="text" style="display:block;width:100%;margin-top:3px;padding:6px 8px;border:0.5px solid #ddd;border-radius:6px;font-size:13px"></label>
+        </div>
+      </div>
+      <!-- Horizontes -->
+      <div id="ed-horizontes"></div>
+    </div>
+    <div style="padding:12px 24px 20px;display:flex;justify-content:flex-end;gap:10px;border-top:0.5px solid #eee">
+      <button class="btn btn-s" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn btn-p" id="btn-guardar" onclick="guardarEdicion()">💾 Guardar en Sheet</button>
+    </div>
+  </div>
+</div>
+
 <script>
-const SU = 'https://script.google.com/macros/s/AKfycbyldE6BsgN--IXccc_UhdmSyhBJvXYrVe1QmlkHCR6CdKLLLqg7McQr-bQib6UN2CKj1g/exec';
+const SU = 'https://script.google.com/macros/s/AKfycbw4QQ2FRVdKzB5Z8Ky3K-9vz9BpMUR6FXUKpYe8rAbJPbd1eL5NS73lSxGFbiObglHDLg/exec';
 const LOGO = './geoc_logo.png';
 const V='#76892F', VO='#5A6A1A', VF='#EDF1E0', VC='#C8D4A0';
 const UM = {'GW':'Grava bien graduada','GP':'Grava mal graduada','GM':'Grava limosa','GC':'Grava arcillosa','GW-GM':'Grava b.grad. c/ limo','GW-GC':'Grava b.grad. c/ arcilla','GP-GM':'Grava m.grad. c/ limo','GP-GC':'Grava m.grad. c/ arcilla','SW':'Arena bien graduada','SP':'Arena mal graduada','SM':'Arena limosa','SC':'Arena arcillosa','SW-SM':'Arena b.grad. c/ limo','SW-SC':'Arena b.grad. c/ arcilla','SP-SM':'Arena m.grad. c/ limo','SP-SC':'Arena m.grad. c/ arcilla','ML':'Limo baja plast.','CL':'Arcilla baja-media plast.','OL':'Limo/arcilla org. baja','MH':'Limo alta plast.','CH':'Arcilla alta plast.','OH':'Arcilla/limo org. alta','PT':'Turba/orgánico','ROCA-SED':'Roca sedimentaria','ROCA-IGN':'Roca ígnea','ROCA-MET':'Roca metamórfica','RELL-C':'Relleno controlado','RELL-CONT':'Relleno contaminado','COB-VEG':'Cobertura vegetal','OTRO':'Otro'};
@@ -311,7 +342,8 @@ function renderCalicatas() {
       <td>${cal.hs.length} horizonte${cal.hs.length!==1?'s':''}</td>
       <td style="font-size:12px;color:var(--gr)">${utmStr}</td>
       <td>${cal.met||'—'}</td>
-      <td><button class="btn btn-o" style="padding:5px 10px;font-size:12px" onclick="expCalicata('${cal.id}')">📄 PDF</button></td>`;
+      <td><button class="btn btn-o" style="padding:5px 10px;font-size:12px" onclick="expCalicata('${cal.id}')">📄 PDF</button></td>
+      <td><button class="btn btn-s" style="padding:5px 10px;font-size:12px" onclick="abrirEdicion('${cal.id}')">✏️ Editar</button></td>`;
     tbody.appendChild(tr);
   });
   updSelCount();
@@ -435,6 +467,222 @@ function toast(msg,type=''){
   const t=document.getElementById('toast');
   t.textContent=msg; t.className='toast show'+(type?' '+type:'');
   clearTimeout(t._t); t._t=setTimeout(()=>t.className='toast',2800);
+}
+
+// ── MODAL EDICIÓN ──────────────────────────────────────────────
+let calEditando = null;
+
+function abrirEdicion(id) {
+  const cal = Object.values(calicatasActuales).find(c => c.id === id);
+  if (!cal) { toast('Calicata no encontrada','err'); return; }
+  calEditando = cal;
+
+  // Datos generales
+  document.getElementById('modal-titulo').textContent = `Editando Calicata ${cal.id} — ${proyectoActual.nombre}`;
+  document.getElementById('ed-fecha').value = cal.fecha || '';
+  document.getElementById('ed-pt').value = cal.pt || '';
+  document.getElementById('ed-met').value = cal.met || '';
+  document.getElementById('ed-nf').value = cal.nf || '';
+  document.getElementById('ed-nfobs').value = cal.nfobs || '';
+  document.getElementById('ed-obs').value = cal.obs || '';
+
+  renderHorizontesEdit(cal);
+  document.getElementById('modal-edit').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function cerrarModal() {
+  document.getElementById('modal-edit').style.display = 'none';
+  document.body.style.overflow = '';
+  calEditando = null;
+}
+
+function renderHorizontesEdit(cal) {
+  const cont = document.getElementById('ed-horizontes');
+  if (!cal.hs || !cal.hs.length) { cont.innerHTML = '<p style="color:var(--gr);font-size:13px">Sin horizontes registrados.</p>'; return; }
+
+  const inp = (id,lbl,val,tipo='text') =>
+    `<label style="font-size:12px;color:var(--gr)">${lbl}<input id="${id}" type="${tipo}" value="${val||''}" style="display:block;width:100%;margin-top:3px;padding:6px 8px;border:0.5px solid #ddd;border-radius:6px;font-size:13px"></label>`;
+
+  const sel = (id,lbl,val,opts) =>
+    `<label style="font-size:12px;color:var(--gr)">${lbl}<select id="${id}" style="display:block;width:100%;margin-top:3px;padding:6px 8px;border:0.5px solid #ddd;border-radius:6px;font-size:13px">${opts.map(o=>`<option value="${o}"${o===val?' selected':''}>${o||'—'}</option>`).join('')}</select></label>`;
+
+  const SUCS_OPTS = [''].concat(Object.keys(UM));
+  const OPTS_SI = ['','Sí','No'];
+  const OPTS_HUM = ['','Seco','Húmedo','Saturado','Muy húmedo'];
+  const OPTS_COM = ['','Muy suelto','Suelto','Medianamente denso','Denso','Muy denso'];
+  const OPTS_CON = ['','Muy blanda','Blanda','Firme','Muy firme','Dura'];
+  const OPTS_GR  = ['','Bien graduada','Mal graduada','Uniforme'];
+  const OPTS_DI  = ['','Alta','Baja','Nula'];
+  const OPTS_RS  = ['','Alta','Media','Baja','Nula'];
+  const OPTS_PL  = ['','Alta','Media','Baja','No plástico'];
+  const OPTS_FO  = ['','Angular','Subangular','Subredondeada','Redondeada'];
+  const OPTS_CE  = ['','Calcárea','Silícea','Arcillosa','Ninguna'];
+  const OPTS_OR  = ['','Aluvial','Coluvial','Eólico','Glacial','Marino','Lacustre','Volcánico','Antrópico','Otro'];
+  const OPTS_MO  = ['','Ausente','Trazas','Moderada','Abundante'];
+  const OPTS_TM  = ['','Alterada','Inalterada','Muestra de agua'];
+  const OPTS_ENS = ['','Granulometría','Límites de Atterberg','Humedad natural','CBR','Proctor','Densidad in situ','Clasificación USCS','Otro'];
+
+  cont.innerHTML = cal.hs.map((h, hi) => `
+    <div style="background:var(--vf);border-radius:8px;padding:14px;margin-bottom:12px;border:0.5px solid var(--vc)">
+      <div style="font-weight:600;color:var(--vo);margin-bottom:10px;font-size:13px">🪨 HORIZONTE ${h.n}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+        ${inp(`eh${hi}_ini`,'Prof. Inicio (m)',h.ini)}
+        ${inp(`eh${hi}_fin`,'Prof. Fin (m)',h.fin)}
+        ${sel(`eh${hi}_us`,'Símbolo USCS',h.us,SUCS_OPTS)}
+        ${inp(`eh${hi}_ns`,'Nombre Suelo',h.ns)}
+        ${inp(`eh${hi}_nl`,'Nombre Local',h.nl)}
+        ${inp(`eh${hi}_cP`,'Color Principal',h.cP)}
+        ${inp(`eh${hi}_cS`,'Color Secundario',h.cS)}
+        ${inp(`eh${hi}_ma`,'Manchas/Bandas',h.ma)}
+        ${inp(`eh${hi}_pBol`,'% Bolones',h.pBol)}
+        ${inp(`eh${hi}_tBol`,'Tmáx Bolones',h.tBol)}
+        ${inp(`eh${hi}_pG`,'% Gravas',h.pG)}
+        ${inp(`eh${hi}_pA`,'% Arenas',h.pA)}
+        ${inp(`eh${hi}_pF`,'% Finos',h.pF)}
+        ${inp(`eh${hi}_tP`,'Tmáx Partículas',h.tP)}
+        ${inp(`eh${hi}_tPr`,'T Predominante',h.tPr)}
+        ${sel(`eh${hi}_gq`,'Graduación',h.gq,OPTS_GR)}
+        ${sel(`eh${hi}_hu`,'Humedad',h.hu,OPTS_HUM)}
+        ${sel(`eh${hi}_co`,'Compacidad',h.co,OPTS_COM)}
+        ${sel(`eh${hi}_cn`,'Consistencia',h.cn,OPTS_CON)}
+        ${sel(`eh${hi}_di`,'Dilatancia',h.di,OPTS_DI)}
+        ${sel(`eh${hi}_rs`,'Resistencia Seca',h.rs,OPTS_RS)}
+        ${sel(`eh${hi}_pl`,'Plasticidad',h.pl,OPTS_PL)}
+        ${sel(`eh${hi}_fo`,'Forma Partículas',h.fo,OPTS_FO)}
+        ${inp(`eh${hi}_ol`,'Olor',h.ol)}
+        ${sel(`eh${hi}_ce`,'Cementación',h.ce,OPTS_CE)}
+        ${sel(`eh${hi}_or`,'Origen',h.or,OPTS_OR)}
+        ${sel(`eh${hi}_mo`,'Materia Orgánica',h.mo,OPTS_MO)}
+        ${inp(`eh${hi}_st`,'Estructura',h.st)}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr;gap:10px">
+        ${inp(`eh${hi}_obs`,'Obs. Horizonte',h.obs)}
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:var(--gr);font-weight:600;margin-bottom:6px">Muestras</div>
+      ${(h.ms||[]).map((m,mi)=>`
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:6px;background:#fff;border-radius:6px;padding:8px;border:0.5px solid #ddd">
+          <div style="font-size:11px;color:var(--vo);font-weight:600;grid-column:1/-1">Muestra ${mi+1}</div>
+          ${sel(`eh${hi}_ms${mi}_t`,'Tipo Muestra',m.t,OPTS_TM)}
+          ${inp(`eh${hi}_ms${mi}_co`,'Cota Muestra (m)',m.co)}
+          ${sel(`eh${hi}_ms${mi}_e`,'Ensayo',m.e,OPTS_ENS)}
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+async function guardarEdicion() {
+  if (!calEditando) return;
+  const cal = calEditando;
+  const btn = document.getElementById('btn-guardar');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+
+  // Recopilar datos generales actualizados
+  const payload = {
+    accion: 'editar',
+    calicataUID: cal.uid,
+    proyecto: proyectoActual.nombre,
+    codProy: proyectoActual.cod,
+    ot: proyectoActual.ot,
+    idCalicata: cal.id,
+    fecha: document.getElementById('ed-fecha').value,
+    profTotal: document.getElementById('ed-pt').value,
+    condMeteo: document.getElementById('ed-met').value,
+    nivelFreatico: document.getElementById('ed-nf').value,
+    nfObs: document.getElementById('ed-nfobs').value,
+    latitud: cal.lat,
+    longitud: cal.lng,
+    utmE: cal.utme,
+    utmN: cal.utmn,
+    utmZona: cal.zona,
+    obsGenerales: document.getElementById('ed-obs').value,
+    horizontes: cal.hs.map((h, hi) => {
+      const g = id => (document.getElementById(`eh${hi}_${id}`) || {}).value || '';
+      const ms = (h.ms||[]).map((m,mi) => ({
+        t: (document.getElementById(`eh${hi}_ms${mi}_t`)||{}).value||'',
+        co: (document.getElementById(`eh${hi}_ms${mi}_co`)||{}).value||'',
+        e: (document.getElementById(`eh${hi}_ms${mi}_e`)||{}).value||''
+      }));
+      return {
+        nEstrato: h.n,
+        profInicio: g('ini'),
+        profFin: g('fin'),
+        pctBolones: g('pBol'),
+        tmaxBolones: g('tBol'),
+        pctGravas: g('pG'),
+        pctArenas: g('pA'),
+        pctFinos: g('pF'),
+        tmaxParticulas: g('tP'),
+        tPredominante: g('tPr'),
+        graduacion: g('gq'),
+        sucs: g('us'),
+        nombreSuelo: g('ns') || UM[g('us')] || '',
+        nombreLocal: g('nl'),
+        colorPrincipal: g('cP'),
+        colorSecundario: g('cS'),
+        manchas: g('ma'),
+        olor: g('ol'),
+        dilatancia: g('di'),
+        resistenciaSeca: g('rs'),
+        plasticidad: g('pl'),
+        formaParticulas: g('fo'),
+        humedad: g('hu'),
+        compacidad: g('co'),
+        consistencia: g('cn'),
+        estructura: g('st'),
+        cementacion: g('ce'),
+        origen: g('or'),
+        materiaOrganica: g('mo'),
+        tipoMuestra: ms.map(m=>m.t).join(' | '),
+        cotaMuestra: ms.map(m=>m.co).join(' | '),
+        ensayo: ms.map(m=>m.e).join(' | '),
+        obsEstrato: g('obs')
+      };
+    })
+  };
+
+  try {
+    const resp = await fetch(SU, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    const json = await resp.json();
+    if (json.status === 'ok') {
+      // Actualizar datos en memoria
+      cal.fecha = payload.fecha;
+      cal.pt = payload.profTotal;
+      cal.met = payload.condMeteo;
+      cal.nf = payload.nivelFreatico;
+      cal.nfobs = payload.nfObs;
+      cal.obs = payload.obsGenerales;
+      payload.horizontes.forEach(ph => {
+        const hm = cal.hs.find(h => h.n === ph.nEstrato);
+        if (hm) {
+          hm.ini = ph.profInicio; hm.fin = ph.profFin;
+          hm.pBol = ph.pctBolones; hm.tBol = ph.tmaxBolones;
+          hm.pG = ph.pctGravas; hm.pA = ph.pctArenas; hm.pF = ph.pctFinos;
+          hm.tP = ph.tmaxParticulas; hm.tPr = ph.tPredominante; hm.gq = ph.graduacion;
+          hm.us = ph.sucs; hm.ns = ph.nombreSuelo; hm.nl = ph.nombreLocal;
+          hm.cP = ph.colorPrincipal; hm.cS = ph.colorSecundario; hm.ma = ph.manchas;
+          hm.ol = ph.olor; hm.di = ph.dilatancia; hm.rs = ph.resistenciaSeca;
+          hm.pl = ph.plasticidad; hm.fo = ph.formaParticulas; hm.hu = ph.humedad;
+          hm.co = ph.compacidad; hm.cn = ph.consistencia; hm.st = ph.estructura;
+          hm.ce = ph.cementacion; hm.or = ph.origen; hm.mo = ph.materiaOrganica;
+          hm.obs = ph.obsEstrato;
+        }
+      });
+      cerrarModal();
+      renderCalicatas();
+      toast('✅ Calicata guardada en el Sheet','ok');
+    } else {
+      throw new Error(json.message || 'Error desconocido');
+    }
+  } catch(e) {
+    toast('⚠ Error al guardar: '+e.message,'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💾 Guardar en Sheet';
+  }
 }
 
 // Cargar al inicio
