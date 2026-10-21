@@ -298,7 +298,7 @@ function volverProyectos() {
 function renderCalicatas() {
   const tbody = document.getElementById('cal-tbody');
   tbody.innerHTML='';
-  const cals = Object.values(calicatasActuales).sort((a,b)=>a.id.localeCompare(b.id,undefined,{numeric:true}));
+  const cals = Object.values(calicatasActuales).sort((a,b)=>String(a.id).localeCompare(String(b.id),undefined,{numeric:true}));
   if(!cals.length) { tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--gr)">Sin calicatas</td></tr>'; return; }
   cals.forEach(cal => {
     const tr=document.createElement('tr');
@@ -332,7 +332,8 @@ function updSelCount() {
 }
 
 function expCalicata(id) {
-  const cal = calicatasActuales[id];
+  // Buscar por id explícitamente (evita problema con keys numéricas)
+  const cal = Object.values(calicatasActuales).find(c=>c.id===id);
   if(!cal) return;
   bldPDF(proyectoActual, cal);
 }
@@ -340,11 +341,11 @@ function expCalicata(id) {
 function expSeleccionadas() {
   const ids = Array.from(document.querySelectorAll('.chk-cal:checked')).map(c=>c.dataset.id);
   if(!ids.length) { toast('Selecciona al menos una calicata','err'); return; }
-  bldPDFMultiple(proyectoActual, ids.map(id=>calicatasActuales[id]));
+  bldPDFMultiple(proyectoActual, ids.map(id=>Object.values(calicatasActuales).find(c=>c.id===id)).filter(Boolean));
 }
 
 function expTodas() {
-  const cals = Object.values(calicatasActuales).sort((a,b)=>a.id.localeCompare(b.id,undefined,{numeric:true}));
+  const cals = Object.values(calicatasActuales).sort((a,b)=>String(a.id).localeCompare(String(b.id),undefined,{numeric:true}));
   if(!cals.length) { toast('No hay calicatas','err'); return; }
   bldPDFMultiple(proyectoActual, cals);
 }
