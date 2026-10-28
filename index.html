@@ -911,15 +911,16 @@ function valCotas(){
 function addE(data){
   eN++;
   const n=eN,cards=document.querySelectorAll('.ec');
-  let is='';
-  if(!data&&cards.length){const lid=cards[cards.length-1].dataset.id,lf=document.getElementById(`e${lid}-f`)?.value;if(lf)is=lf;}
+  let is='',fs='';
+  if(!data&&cards.length){const lid=cards[cards.length-1].dataset.id,lf=document.getElementById(`e${lid}-f`)?.value;if(lf){is=lf;}}
   if(data&&data.ini)is=data.ini;
+  if(data&&data.fin)fs=data.fin;
   const div=document.createElement('div');div.className='ec';div.dataset.id=n;div.id=`est-${n}`;
   div.innerHTML=`
   <div class="eh"><span>Horizonte ${n} <span class="espb" id="e${n}-e">—</span></span><button onclick="delE(${n})">Eliminar</button></div>
   <div class="efr">
     <div class="fl"><label>Desde (m)</label><input type="number" id="e${n}-i" value="${is}" placeholder="0.00" step="0.01" min="0" oninput="valCotas()" onblur="fmtDec(this);valCotas()"></div>
-    <div class="fl"><label>Hasta (m)</label><input type="number" id="e${n}-f" placeholder="0.50" step="0.01" min="0" oninput="valCotas();updC(${n})" onblur="fmtDec(this);valCotas();updC(${n})"></div>
+    <div class="fl"><label>Hasta (m)</label><input type="number" id="e${n}-f" value="${fs}" placeholder="0.50" step="0.01" min="0" oninput="valCotas();updC(${n})" onblur="fmtDec(this);valCotas();updC(${n})"></div>
   </div>
   <div class="ef">
     <label>Tipo de horizonte</label>
@@ -1049,7 +1050,8 @@ function togNL(n){const s=document.getElementById(`e${n}-nl`),i=document.getElem
 function addM(n){
   const tb=document.getElementById(`ms-${n}`);
   const ini=parseFloat(document.getElementById(`e${n}-i`)?.value)||0;
-  const fin=parseFloat(document.getElementById(`e${n}-f`)?.value)||0;
+  const finEl=document.getElementById(`e${n}-f`);
+  const fin=parseFloat(finEl?.value)||parseFloat(finEl?.placeholder)||0;
   const mid=ini<fin?((ini+fin)/2).toFixed(2):'';
   const tr=document.createElement('tr');
   tr.innerHTML=`<td><input type="number" value="1" min="1" max="20" style="width:45px;text-align:center;border:0.5px solid #ddd;border-radius:5px;padding:4px;font-size:13px"></td><td><select onchange="aEns(this)" style="min-width:75px"><option value="">—</option><optgroup label="Inalteradas"><option>MIG</option><option>MIM</option><option>MIP</option></optgroup><optgroup label="Sacos"><option>Saco</option></optgroup></select></td><td><input type="number" step="0.01" value="${mid}" min="${(ini+0.01).toFixed(2)}" max="${(fin-0.01).toFixed(2)}" style="width:72px;text-align:center" onblur="vCM(this,${ini},${fin})"></td><td><input type="text" placeholder="Ensayo" style="min-width:100px"></td><td><button class="bdel" onclick="this.closest('tr').remove()">×</button></td>`;
