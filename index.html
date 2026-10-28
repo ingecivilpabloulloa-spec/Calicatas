@@ -167,7 +167,7 @@ input.ce,.fl input.ce{border-color:var(--r)!important;background:#fff5f5!importa
       <div style="font-weight:700;color:var(--vo);margin-bottom:8px;font-size:14px">📸 Foto Panorámica del Proyecto</div>
       <div id="pano-thumbs" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px"></div>
       <button class="btn btn-g btn-full" onclick="adjuntarPano()">+ Adjuntar foto panorámica</button>
-      <input type="file" id="inp-pano" accept="image/*" style="display:none" onchange="onPanoFile(event)" multiple>
+      <input type="file" id="inp-pano" accept=".jpg,.jpeg,.png,.webp,.heic,.heif" style="display:none" onchange="onPanoFile(event)" multiple>
     </div>
     <div id="lista-cals"></div>
     <div style="display:flex;gap:10px;margin-top:4px">
@@ -707,7 +707,7 @@ function renderFotoSlots(){
     if(!f)slot.onclick=()=>document.getElementById('finp-'+i).click();
     cont.appendChild(slot);
     const inp=document.createElement('input');
-    inp.type='file';inp.accept='image/*';inp.id='finp-'+i;
+    inp.type='file';inp.accept='.jpg,.jpeg,.png,.webp,.heic,.heif';inp.id='finp-'+i;
     inp.style.display='none';
     inp.onchange=(ev)=>onFotoSlot(ev,i);
     inps.appendChild(inp);
@@ -1068,8 +1068,20 @@ function aEns(sel){
 }
 function vCM(inp,ini,fin){
   const v=parseFloat(inp.value);if(isNaN(v))return;
-  if(v<=ini||v>=fin){inp.classList.add('ce');toast(`Cota entre ${(ini+0.01).toFixed(2)} y ${(fin-0.01).toFixed(2)}m`,'err');}
-  else inp.classList.remove('ce');
+  // Buscar o crear mensaje de error inline junto al input
+  let msg=inp.parentElement.querySelector('.vcm-err');
+  if(!msg){msg=document.createElement('div');msg.className='vcm-err';msg.style.cssText='color:#c62828;font-size:12px;margin-top:3px;font-weight:600';inp.parentElement.appendChild(msg);}
+  if(v<=ini||v>=fin){
+    inp.classList.add('ce');
+    msg.textContent=`Cota entre ${(ini+0.01).toFixed(2)} y ${(fin-0.01).toFixed(2)}m`;
+    msg.style.display='block';
+    // Scroll suave hacia el mensaje (visible aunque el teclado esté abierto)
+    setTimeout(()=>inp.scrollIntoView({behavior:'smooth',block:'center'}),100);
+  } else {
+    inp.classList.remove('ce');
+    msg.style.display='none';
+    msg.textContent='';
+  }
 }
 
 // ── VALIDACIÓN ID CALICATA ──
@@ -1080,14 +1092,16 @@ function validarID(cid){
 // ── GUARDAR CALICATA ──
 async function guardarCal(){
   const btn=document.getElementById('btn-grd');
+  if(btn.disabled)return; // evitar doble envío
+  btn.disabled=true;btn.textContent='Guardando...';
   const cid=document.getElementById('c-id').value.trim();
   const editIdx=btn.dataset.editIdx!==undefined&&btn.dataset.editIdx!==''?parseInt(btn.dataset.editIdx):-1;
   const existingUid=btn.dataset.uid||'';
-  if(!cid){toast('Ingresa N° calicata','err');return;}
+  if(!cid){showErr('⚠ Ingresa N° de calicata');btn.disabled=false;btn.textContent='💾 Guardar calicata';return;}
   // Validar formato ID: letra(s) + número, con o sin guión
-  if(!validarID(cid)){toast('Formato inválido. Usa letras+número (C-1, CAL-3)','err');return;}
+  if(!validarID(cid)){showErr('⚠ Formato inválido — usa letras+número (ej: C-1, CAL-3)');btn.disabled=false;btn.textContent='💾 Guardar calicata';return;}
   const cards=document.querySelectorAll('.ec');
-  if(!cards.length){toast('Agrega al menos un horizonte','err');return;}
+  if(!cards.length){showErr('⚠ Agrega al menos un horizonte');btn.disabled=false;btn.textContent='💾 Guardar calicata';return;}
   // Validar graduación
   let gE=false;
   cards.forEach(card=>{
@@ -1098,7 +1112,7 @@ async function guardarCal(){
     const pF=parseFloat(document.getElementById(`e${id}-pF`)?.value)||0;
     if(pG+pA+pF>0&&Math.abs(pG+pA+pF-100)>0.5)gE=true;
   });
-  if(gE){toast('Corrige graduación (debe sumar 100%)','err');return;}
+  if(gE){showErr('⚠ Corrige graduación — gravas + arenas + finos debe sumar 100%');btn.disabled=false;btn.textContent='💾 Guardar calicata';return;}
   // Validar muestra sin cota
   let mErr=false;
   cards.forEach(card=>{
@@ -1112,7 +1126,7 @@ async function guardarCal(){
       }
     });
   });
-  if(mErr){toast('Hay muestras sin cota registrada','err');return;}
+  if(mErr){showErr('⚠ Hay muestras sin cota registrada');btn.disabled=false;btn.textContent='💾 Guardar calicata';return;}
   const p=proys[curP];
   const hs=[];
   cards.forEach((card,i)=>{
@@ -1158,13 +1172,24 @@ async function guardarCal(){
   if(editIdx>=0){p.cals[editIdx]=cal;}
   else{p.cals.push(cal);}
   localStorage.setItem('gp',JSON.stringify(proys));
-  btn.disabled=true;btn.textContent='Guardando...';
   toast('Enviando...');
   let ok=true;
   for(const h of hs){
     const row={calicataUID:uid,proyecto:p.nom,codProy:`${p.ano}-${p.cod}`,ot:cal.ot,idCalicata:cal.id,fecha:cal.fec,profTotal:cal.pt,condMeteo:cal.met,nivelFreatico:cal.nf||'No detectado',nfObs:cal.nfobs,latitud:cal.lat,longitud:cal.lng,utmE:cal.utme,utmN:cal.utmn,utmZona:cal.zona,nEstrato:h.n,profInicio:h.ini,profFin:h.fin,pctBolones:h.pBol,tmaxBolones:h.tBol,pctGravas:h.pG,pctArenas:h.pA,pctFinos:h.pF,tmaxParticulas:h.tP,tPredominante:h.tPr,graduacion:h.gq,sucs:h.us,nombreSuelo:h.ns||UM[h.us]||'',nombreLocal:h.nl,colorPrincipal:h.cP,colorSecundario:h.cS,manchas:h.ma,olor:h.ol,dilatancia:h.di,resistenciaSeca:h.rs,plasticidad:h.pl,formaParticulas:h.fo,humedad:h.hu,compacidad:h.co,consistencia:h.cn,estructura:h.st,cementacion:h.ce,origen:h.or,materiaOrganica:h.mo,tipoMuestra:h.ms.map(m=>(m.cant&&m.cant!='1'?m.cant+' ':'')+m.t).join(' | '),cotaMuestra:h.ms.map(m=>m.co+'m').join(' | '),ensayo:h.ms.map(m=>m.e).join(' | '),obsEstrato:h.obs,obsGenerales:cal.obs};
-    try{await fetch(SU,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(row)});}
-    catch(e){ok=false;const pd=gP();pd.push(row);sP(pd);}
+    const payload=editIdx>=0?{...row,accion:'editar',calicataUID:uid,horizontes:hs.map(hh=>({
+      nEstrato:hh.n,profInicio:hh.ini,profFin:hh.fin,pctBolones:hh.pBol,tmaxBolones:hh.tBol,
+      pctGravas:hh.pG,pctArenas:hh.pA,pctFinos:hh.pF,tmaxParticulas:hh.tP,tPredominante:hh.tPr,
+      graduacion:hh.gq,sucs:hh.us,nombreSuelo:hh.ns||UM[hh.us]||'',nombreLocal:hh.nl,
+      colorPrincipal:hh.cP,colorSecundario:hh.cS,manchas:hh.ma,olor:hh.ol,dilatancia:hh.di,
+      resistenciaSeca:hh.rs,plasticidad:hh.pl,formaParticulas:hh.fo,humedad:hh.hu,
+      compacidad:hh.co,consistencia:hh.cn,estructura:hh.st,cementacion:hh.ce,origen:hh.or,
+      materiaOrganica:hh.mo,tipoMuestra:hh.ms.map(m=>(m.cant&&m.cant!='1'?m.cant+' ':'')+m.t).join(' | '),
+      cotaMuestra:hh.ms.map(m=>m.co+'m').join(' | '),ensayo:hh.ms.map(m=>m.e).join(' | '),
+      obsEstrato:hh.obs
+    }))}:row;
+    if(editIdx>=0&&h.n>1)continue; // en edición enviar solo 1 vez (payload incluye todos los horizontes)
+    try{await fetch(SU,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});}
+    catch(e){ok=false;const pd=gP();pd.push(payload);sP(pd);}
   }
   toast(ok?`${cid} ${editIdx>=0?'actualizada':'guardada'} ✓`:'Guardado local (sin conexión)','ok');
   showPend();btn.disabled=false;btn.textContent='💾 Guardar calicata';
@@ -1323,6 +1348,15 @@ function bldPDFPages(pr,cal,cont){
 }
 
 // ── TOAST ──
+function showErr(msg){
+  const b=document.getElementById('val-banner');
+  document.getElementById('val-banner-msg').textContent=msg;
+  b.style.display='block';
+  // Auto-ocultar después de 4s
+  clearTimeout(b._t);b._t=setTimeout(()=>b.style.display='none',4000);
+  // Scroll al top para que sea visible
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 function toast(msg,type=''){
   const t=document.getElementById('toast');
   t.textContent=msg;t.className='toast show'+(type?' '+type:'');
