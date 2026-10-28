@@ -137,7 +137,7 @@ input.ce,.fl input.ce{border-color:var(--r)!important;background:#fff5f5!importa
     <div class="card">
       <div class="ef"><label>Nombre del Proyecto *</label><input id="np-nom" placeholder="Ej: APR La Florida"></div>
       <div class="efr">
-        <div class="fl"><label>Año</label><input id="np-ano" type="number" placeholder="2025" value="2025"></div>
+        <div class="fl"><label>Año</label><input id="np-ano" type="number" placeholder="2026" value="2026"></div>
         <div class="fl"><label>Código</label><input id="np-cod" placeholder="GEOC-001"></div>
       </div>
       <div class="efr">
@@ -1054,13 +1054,13 @@ function addM(n){
   const fin=parseFloat(finEl?.value)||parseFloat(finEl?.placeholder)||0;
   const mid=ini<fin?((ini+fin)/2).toFixed(2):'';
   const tr=document.createElement('tr');
-  tr.innerHTML=`<td><input type="number" value="1" min="1" max="20" style="width:45px;text-align:center;border:0.5px solid #ddd;border-radius:5px;padding:4px;font-size:13px"></td><td><select onchange="aEns(this)" style="min-width:75px"><option value="">—</option><optgroup label="Inalteradas"><option>MIG</option><option>MIM</option><option>MIP</option></optgroup><optgroup label="Sacos"><option>Saco</option></optgroup></select></td><td><input type="number" step="0.01" value="${mid}" min="${(ini+0.01).toFixed(2)}" max="${(fin-0.01).toFixed(2)}" style="width:72px;text-align:center" onblur="vCM(this,${ini},${fin})"></td><td><input type="text" placeholder="Ensayo" style="min-width:100px"></td><td><button class="bdel" onclick="this.closest('tr').remove()">×</button></td>`;
+  tr.innerHTML=`<td><input type="number" value="1" min="1" max="20" style="width:45px;text-align:center;border:0.5px solid #ddd;border-radius:5px;padding:4px;font-size:13px"></td><td><select onchange="aEns(this)" style="min-width:75px"><option value="">—</option><optgroup label="Inalteradas"><option>MIG</option><option>MIM</option><option>MIP</option></optgroup><optgroup label="Sacos"><option>Saco</option></optgroup></select></td><td><input type="number" step="0.01" value="${mid}" min="${(ini+0.01).toFixed(2)}" max="${(fin-0.01).toFixed(2)}" style="width:72px;text-align:center" onblur="vCM(this,${ini},${fin});fmtDec(this)"></td><td><input type="text" placeholder="Ensayo" style="min-width:100px"></td><td><button class="bdel" onclick="this.closest('tr').remove()">×</button></td>`;
   tb.appendChild(tr);
 }
 function addMData(n,m){
   const tb=document.getElementById(`ms-${n}`);if(!tb)return;
   const tr=document.createElement('tr');
-  tr.innerHTML=`<td><input type="number" value="${m.cant||1}" min="1" max="20" style="width:45px;text-align:center;border:0.5px solid #ddd;border-radius:5px;padding:4px;font-size:13px"></td><td><select style="min-width:75px"><option value="">—</option><optgroup label="Inalteradas"><option${m.t==='MIG'?' selected':''}>MIG</option><option${m.t==='MIM'?' selected':''}>MIM</option><option${m.t==='MIP'?' selected':''}>MIP</option></optgroup><optgroup label="Sacos"><option${m.t==='Saco'?' selected':''}>Saco</option></optgroup></select></td><td><input type="number" step="0.01" value="${m.co||''}" style="width:72px;text-align:center"></td><td><input type="text" value="${m.e||''}" placeholder="Ensayo" style="min-width:100px"></td><td><button class="bdel" onclick="this.closest('tr').remove()">×</button></td>`;
+  tr.innerHTML=`<td><input type="number" value="${m.cant||1}" min="1" max="20" style="width:45px;text-align:center;border:0.5px solid #ddd;border-radius:5px;padding:4px;font-size:13px"></td><td><select style="min-width:75px"><option value="">—</option><optgroup label="Inalteradas"><option${m.t==='MIG'?' selected':''}>MIG</option><option${m.t==='MIM'?' selected':''}>MIM</option><option${m.t==='MIP'?' selected':''}>MIP</option></optgroup><optgroup label="Sacos"><option${m.t==='Saco'?' selected':''}>Saco</option></optgroup></select></td><td><input type="number" step="0.01" value="${m.co||''}" style="width:72px;text-align:center" onblur="fmtDec(this)"></td><td><input type="text" value="${m.e||''}" placeholder="Ensayo" style="min-width:100px"></td><td><button class="bdel" onclick="this.closest('tr').remove()">×</button></td>`;
   tb.appendChild(tr);
 }
 function aEns(sel){
