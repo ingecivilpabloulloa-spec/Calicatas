@@ -194,7 +194,7 @@ input.ce,.fl input.ce{border-color:var(--r)!important;background:#fff5f5!importa
       </div>
       <div class="efr">
         <div class="fl"><label>Fecha</label><input id="c-fec" type="date"></div>
-        <div class="fl"><label>Prof. Total (m)</label><input id="c-pt" type="number" step="0.01" placeholder="2.00" oninput="fmtDec(this)" onblur="fmtDec(this);valCotas()"></div>
+        <div class="fl"><label>Prof. Total (m)</label><input id="c-pt" type="text" inputmode="decimal" placeholder="2.00" oninput="fmtDecLive(this)" onblur="fmtDec(this);valCotas()"></div>
       </div>
       <div class="ef"><label>Condición Meteorológica</label>
         <div class="chips" id="chips-met">
@@ -207,7 +207,7 @@ input.ce,.fl input.ce{border-color:var(--r)!important;background:#fff5f5!importa
         <input class="oi" id="otro-met" placeholder="Especificar...">
       </div>
       <div class="efr">
-        <div class="fl"><label>Prof. N. Freático (m)</label><input id="c-nf" type="number" step="0.01" placeholder="No detectado" oninput="fmtDec(this)" onblur="fmtDec(this)"></div>
+        <div class="fl"><label>Prof. N. Freático (m)</label><input id="c-nf" type="text" inputmode="decimal" placeholder="No detectado" onblur="fmtDec(this)"></div>
         <div class="fl"><label>Obs. N. Freático</label><input id="c-nfobs" placeholder="Observación"></div>
       </div>
     </div>
@@ -616,9 +616,16 @@ async function confirmarEliminar(){
 
 // ── 2 DECIMALES ──
 function fmtDec(inp){
-  if(inp.value==='')return;
-  const v=parseFloat(inp.value.replace(',','.'));
+  if(inp.value===''||inp.value===null)return;
+  const v=parseFloat(String(inp.value).replace(',','.'));
   if(!isNaN(v))inp.value=v.toFixed(2);
+}
+// Limpia mientras escribe: solo dígitos, punto y coma
+function fmtDecLive(inp){
+  let v=inp.value.replace(',','.');
+  // quitar caracteres no numéricos excepto punto y signo negativo al inicio
+  v=v.replace(/[^0-9.\-]/g,'');
+  inp.value=v;
 }
 
 // ── GPS CALIBRACIÓN ──
@@ -921,8 +928,8 @@ function addE(data){
   div.innerHTML=`
   <div class="eh"><span>Horizonte ${n} <span class="espb" id="e${n}-e">—</span></span><button onclick="delE(${n})">Eliminar</button></div>
   <div class="efr">
-    <div class="fl"><label>Desde (m)</label><input type="number" id="e${n}-i" value="${is}" placeholder="0.00" step="0.01" min="0" oninput="valCotas()" onblur="fmtDec(this);valCotas()"></div>
-    <div class="fl"><label>Hasta (m)</label><input type="number" id="e${n}-f" value="${fs}" placeholder="0.50" step="0.01" min="0" oninput="valCotas();updC(${n})" onblur="fmtDec(this);valCotas();updC(${n})"></div>
+    <div class="fl"><label>Desde (m)</label><input type="text" inputmode="decimal" id="e${n}-i" value="${is}" placeholder="0.00" oninput="valCotas()" onblur="fmtDec(this);valCotas()"></div>
+    <div class="fl"><label>Hasta (m)</label><input type="text" inputmode="decimal" id="e${n}-f" value="${fs}" placeholder="0.50" oninput="valCotas();updC(${n})" onblur="fmtDec(this);valCotas();updC(${n})"></div>
   </div>
   <div class="ef">
     <label>Tipo de horizonte</label>
@@ -1056,13 +1063,13 @@ function addM(n){
   const fin=parseFloat(finEl?.value)||parseFloat(finEl?.placeholder)||0;
   const mid=ini<fin?((ini+fin)/2).toFixed(2):'';
   const tr=document.createElement('tr');
-  tr.innerHTML=`<td><input type="number" value="1" min="1" max="20" style="width:45px;text-align:center;border:0.5px solid #ddd;border-radius:5px;padding:4px;font-size:13px"></td><td><select onchange="aEns(this)" style="min-width:75px"><option value="">—</option><optgroup label="Inalteradas"><option>MIG</option><option>MIM</option><option>MIP</option></optgroup><optgroup label="Sacos"><option>Saco</option></optgroup></select></td><td><input type="number" step="0.01" value="${mid}" min="${(ini+0.01).toFixed(2)}" max="${(fin-0.01).toFixed(2)}" style="width:72px;text-align:center" onblur="vCM(this,${ini},${fin});fmtDec(this)"></td><td><input type="text" placeholder="Ensayo" style="min-width:100px"></td><td><button class="bdel" onclick="this.closest('tr').remove()">×</button></td>`;
+  tr.innerHTML=`<td><input type="number" value="1" min="1" max="20" style="width:45px;text-align:center;border:0.5px solid #ddd;border-radius:5px;padding:4px;font-size:13px"></td><td><select onchange="aEns(this)" style="min-width:75px"><option value="">—</option><optgroup label="Inalteradas"><option>MIG</option><option>MIM</option><option>MIP</option></optgroup><optgroup label="Sacos"><option>Saco</option></optgroup></select></td><td><input type="text" inputmode="decimal" value="${mid}" style="width:72px;text-align:center;border:0.5px solid #ddd;border-radius:5px;padding:4px;font-size:13px" onblur="vCM(this,${ini},${fin});fmtDec(this)" placeholder="0.00"></td><td><input type="text" placeholder="Ensayo" style="min-width:100px"></td><td><button class="bdel" onclick="this.closest('tr').remove()">×</button></td>`;
   tb.appendChild(tr);
 }
 function addMData(n,m){
   const tb=document.getElementById(`ms-${n}`);if(!tb)return;
   const tr=document.createElement('tr');
-  tr.innerHTML=`<td><input type="number" value="${m.cant||1}" min="1" max="20" style="width:45px;text-align:center;border:0.5px solid #ddd;border-radius:5px;padding:4px;font-size:13px"></td><td><select style="min-width:75px"><option value="">—</option><optgroup label="Inalteradas"><option${m.t==='MIG'?' selected':''}>MIG</option><option${m.t==='MIM'?' selected':''}>MIM</option><option${m.t==='MIP'?' selected':''}>MIP</option></optgroup><optgroup label="Sacos"><option${m.t==='Saco'?' selected':''}>Saco</option></optgroup></select></td><td><input type="number" step="0.01" value="${m.co||''}" style="width:72px;text-align:center" onblur="fmtDec(this)"></td><td><input type="text" value="${m.e||''}" placeholder="Ensayo" style="min-width:100px"></td><td><button class="bdel" onclick="this.closest('tr').remove()">×</button></td>`;
+  tr.innerHTML=`<td><input type="number" value="${m.cant||1}" min="1" max="20" style="width:45px;text-align:center;border:0.5px solid #ddd;border-radius:5px;padding:4px;font-size:13px"></td><td><select style="min-width:75px"><option value="">—</option><optgroup label="Inalteradas"><option${m.t==='MIG'?' selected':''}>MIG</option><option${m.t==='MIM'?' selected':''}>MIM</option><option${m.t==='MIP'?' selected':''}>MIP</option></optgroup><optgroup label="Sacos"><option${m.t==='Saco'?' selected':''}>Saco</option></optgroup></select></td><td><input type="text" inputmode="decimal" value="${m.co||''}" style="width:72px;text-align:center;border:0.5px solid #ddd;border-radius:5px;padding:4px;font-size:13px" onblur="fmtDec(this)" placeholder="0.00"></td><td><input type="text" value="${m.e||''}" placeholder="Ensayo" style="min-width:100px"></td><td><button class="bdel" onclick="this.closest('tr').remove()">×</button></td>`;
   tb.appendChild(tr);
 }
 function aEns(sel){
@@ -1071,7 +1078,7 @@ function aEns(sel){
   if(inp&&m[sel.value])inp.value=m[sel.value];
 }
 function vCM(inp,ini,fin){
-  const v=parseFloat(inp.value);if(isNaN(v))return;
+  const v=parseFloat(String(inp.value).replace(',','.'));if(isNaN(v))return;
   // Buscar o crear mensaje de error inline junto al input
   let msg=inp.parentElement.querySelector('.vcm-err');
   if(!msg){msg=document.createElement('div');msg.className='vcm-err';msg.style.cssText='color:#c62828;font-size:12px;margin-top:3px;font-weight:600';inp.parentElement.appendChild(msg);}
