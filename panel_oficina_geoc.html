@@ -84,6 +84,8 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f0eb;color:var(--
 .res-mt{position:absolute;width:3%;border-top:0.15mm solid #999}
 .res-cv{position:absolute;top:0}
 .res-dot{position:absolute;width:1.2mm;height:1.2mm;margin:-0.6mm 0 0 -0.6mm;border-radius:50%;background:#A32D2D}
+.res-nf{position:absolute;right:0;border-top:0.35mm dashed #1565c0;z-index:2}
+.res-nft{position:absolute;transform:translateY(-100%);margin-top:-0.3mm;padding:0 0.6mm;font-size:4.8pt;font-weight:bold;color:#1565c0;background:#fff;border:0.15mm solid #1565c0;line-height:1.3;z-index:3;white-space:nowrap}
 .res-lb{position:absolute;font-size:5pt;line-height:2.3mm;text-align:center;overflow:hidden;white-space:nowrap}
 .res-ley{border:0.3mm solid #333;padding:1.5mm 4mm;font-size:5.8pt;line-height:1.45;box-sizing:border-box;overflow:hidden}
 .res-ley b{font-size:7pt}
@@ -129,6 +131,7 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f0eb;color:var(--
           <button class="btn btn-p" onclick="expTodas()">📄 Exportar proyecto completo</button>
           <select id="res-orient" title="Formato del resumen" style="padding:8px 10px;border:0.5px solid var(--v);border-radius:8px;font-size:13px;background:#fff;color:var(--vo)"><option value="v">A4 vertical · 10/hoja</option><option value="h">A4 horizontal · 5/hoja</option></select>
           <button class="btn btn-o" onclick="imprimirResumenEstratigrafias()" title="Usa las calicatas seleccionadas o, si no hay selección, todas">🗂 Resumen estratigrafías</button>
+          <button class="btn btn-p" id="btn-xlsx-proy" onclick="exportarExcelProyecto()" title="Formato FS06P03 con todas las calicatas (o solo las seleccionadas)">📊 Excel designación</button>
         </div>
       </div>
       <div class="sel-all-row">
@@ -167,7 +170,6 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f0eb;color:var(--
     <div style="background:#5A6A1A;color:#fff;padding:16px 24px;display:flex;align-items:center;justify-content:space-between">
       <h2 id="ficha-titulo" style="font-size:15px;font-weight:600"></h2>
       <div style="display:flex;gap:8px;align-items:center">
-        <button id="btn-ficha-xlsx" onclick="exportarFichaExcel()" style="background:#fff;color:#5A6A1A;border:none;border-radius:6px;padding:6px 14px;font-size:13px;cursor:pointer;font-weight:600">📊 Exportar Excel</button>
         <button onclick="imprimirFicha()" style="background:#EDF1E0;color:#5A6A1A;border:none;border-radius:6px;padding:6px 14px;font-size:13px;cursor:pointer;font-weight:600">🖨 Imprimir</button>
         <button onclick="cerrarFicha()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1">×</button>
       </div>
@@ -972,7 +974,6 @@ function abrirFicha(calId) {
   const cal = Object.values(calicatasActuales).find(c => c.id === calId);
   if (!cal) return;
   const proy = proyectoActual;
-  fichaCalActual = cal;
 
   // Construir tabla de muestras
   let filasMuestras = '';
@@ -1030,7 +1031,6 @@ function imprimirFicha() {
 // (SheetJS Community no conserva estilos al reescribir un .xlsx, por eso no se usa aquí.)
 const XLSX_TEMPLATE = './formato_excel_lab.xlsx';
 const JSZIP_SRC = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
-let fichaCalActual = null;
 let _jszipPromise = null;
 
 // Mapa de celdas del formato. Si el laboratorio cambia la plantilla, ajustar aquí.
@@ -1214,14 +1214,16 @@ async function llenarFormatoLab(JSZip, buf, proy, cals) {
   setCell(C.proyecto, String(proy.nombre || ''));
   setCell(C.codigo, /^\d+$/.test(String(proy.cod).trim()) ? +proy.cod : String(proy.cod || ''));
   ['direccion','solicitante','cliente','encargado','fechaEstrat','plazo'].forEach(k => setCell(C[k], ''));
-  const fechas = [...new Set(cals.map(c => c.fecha).filter(Boolean).map(fmtFechaCL))];
-  setCell(C.fechaMuestreo, fechas.length === 1 ? serialExcel(cals.find(c => c.fecha).fecha) : fechas.join(' / '));
+  const seriales = [...new Set(cals.map(c => serialExcel(c.fecha)).filter(v => v !== ''))].sort((a, b) => a - b);
+  const desdeSerial = n => fmtFechaCL(new Date(Date.UTC(1899, 11, 30) + n * 864e5 + 12 * 36e5));
+  setCell(C.fechaMuestreo, seriales.length === 1 ? seriales[0]
+    : seriales.length ? `${desdeSerial(seriales[0])} al ${desdeSerial(seriales[seriales.length - 1])}` : '');
   setCell(C.fechaVersion, `${fmtFechaCL(new Date())} v1`);
 
   // ── Detalle de muestras
   const {filas, notas} = filasFormatoLab(cals);
   const cap = FMT.filaN - FMT.fila0 + 1;
-  if (filas.length > cap) throw new Error(`El formato admite ${cap} filas de muestras (hay ${filas.length})`);
+  if (filas.length > cap) throw new Error(`El formato admite ${cap} filas de muestras y hay ${filas.length}. Selecciona las calicatas por tandas y exporta cada tanda.`);
   const mc = doc.getElementsByTagNameNS(NS, 'mergeCells')[0];
   [...mc.getElementsByTagNameNS(NS, 'mergeCell')].forEach(m => {
     const [, col, rn] = m.getAttribute('ref').split(':')[0].match(/^([A-Z]+)(\d+)$/);
@@ -1269,10 +1271,12 @@ async function llenarFormatoLab(JSZip, buf, proy, cals) {
     mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
 }
 
-async function exportarFichaExcel() {
-  const cal = fichaCalActual, proy = proyectoActual;
-  if (!cal || !proy) { toast('Abre primero la ficha de una calicata','err'); return; }
-  const btn = document.getElementById('btn-ficha-xlsx');
+async function exportarExcelProyecto() {
+  const proy = proyectoActual;
+  if (!proy) return;
+  const cals = calicatasParaResumen();            // seleccionadas o, si no hay, todas
+  if (!cals.length) { toast('No hay calicatas','err'); return; }
+  const btn = document.getElementById('btn-xlsx-proy');
   const txt = btn.textContent;
   btn.disabled = true; btn.textContent = 'Generando...';
   try {
@@ -1283,13 +1287,15 @@ async function exportarFichaExcel() {
         return r.arrayBuffer();
       })
     ]);
-    const blob = await llenarFormatoLab(JSZip, buf, proy, [cal]);
-    const nombre = `${limpiarNombreArchivo(proy.cod || proy.nombre)}_Designacion_ensayos_${limpiarNombreArchivo(cal.id)}.xlsx`;
+    const blob = await llenarFormatoLab(JSZip, buf, proy, cals);
+    const total = Object.keys(calicatasActuales).length;
+    const sufijo = cals.length < total ? '_' + cals.map(c => limpiarNombreArchivo(c.id)).join('-').slice(0, 40) : '';
+    const nombre = `${limpiarNombreArchivo(proy.cod || proy.nombre)}_Designacion_ensayos${sufijo}.xlsx`;
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = nombre;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-    toast('Excel generado ✓','ok');
+    toast(`Excel generado ✓ (${cals.length} calicata${cals.length !== 1 ? 's' : ''})`, 'ok');
   } catch(e) {
     console.error(e);
     toast('⚠ ' + e.message, 'err');
@@ -1329,7 +1335,7 @@ function calicatasParaResumen() {
   return sel.length ? todas.filter(c => sel.includes(String(c.id))) : todas;
 }
 
-// Muestras agrupadas por cota: [{cota, cods:['S-2','MI-P-1'], ens:['USCS+LL-LP']}]
+// Muestras agrupadas por cota: [{cota, cods:['2 S','1 MI-P'], ens:['USCS','LL-LP']}]
 function gruposMuestraPorCota(cal) {
   const g = new Map();
   muestrasDeCalicata(cal).forEach(m => {
@@ -1337,7 +1343,7 @@ function gruposMuestraPorCota(cal) {
     const k = m.cota.toFixed(2);
     if (!g.has(k)) g.set(k, {cota:m.cota, cods:[], ens:[]});
     const x = g.get(k);
-    x.cods.push(`${TIPO_COD(m.tipo)}-${m.cant}`);
+    x.cods.push(`${m.cant} ${TIPO_COD(m.tipo)}`);
     abrevEnsayo(m.ensayo).split('+').filter(Boolean).forEach(a => { if (!x.ens.includes(a)) x.ens.push(a); });
   });
   return [...g.values()].sort((a, b) => a.cota - b.cota);
@@ -1368,14 +1374,6 @@ function dibujarColumnaEstrat(canvas, cal, Z) {
   if (!isNaN(pt) && pt > 0) {                    // fondo de excavación
     ctx.beginPath(); ctx.strokeStyle = '#000'; ctx.lineWidth = 1.6;
     ctx.moveTo(0, y(pt)); ctx.lineTo(w, y(pt)); ctx.stroke();
-  }
-  const nf = parseFloat(String(cal.nf || '').replace(',', '.'));
-  if (!isNaN(nf)) {                              // nivel freático
-    const yn = y(nf), xr = w - 3;
-    ctx.beginPath(); ctx.strokeStyle = '#1565c0'; ctx.lineWidth = 0.8; ctx.setLineDash([2, 1.5]);
-    ctx.moveTo(0, yn); ctx.lineTo(w, yn); ctx.stroke(); ctx.setLineDash([]);
-    ctx.beginPath(); ctx.fillStyle = '#1565c0';
-    ctx.moveTo(xr - 3, yn - 5); ctx.lineTo(xr + 3, yn - 5); ctx.lineTo(xr, yn); ctx.closePath(); ctx.fill();
   }
 }
 
@@ -1409,14 +1407,18 @@ function construirResumenEstratigrafias(pr, cals, orient, cont) {
     }
     if (cal) {
       b += `<canvas class="res-cv" data-id="${id}" data-w="${(calW * RES_COLS[1] / 100).toFixed(3)}" data-h="${bodyH.toFixed(3)}" style="left:${xs[1]}%;width:${RES_COLS[1]}%;height:${bodyH}mm"></canvas>`;
+      const nf = parseFloat(String(cal.nf || '').replace(',', '.'));
+      if (!isNaN(nf) && nf <= Z) {                  // nivel freático: línea en todo el ancho + cota
+        b += `<div class="res-nf" style="top:${mmY(nf)}mm;left:${xs[1]}%"></div>`;
+        b += `<div class="res-nft" style="top:${mmY(nf)}mm;left:${xs[1]}%">▼ NF ${nf.toFixed(2)} m</div>`;
+      }
       let fin = -1;                                 // evitar que etiquetas se monten
       gruposMuestraPorCota(cal).forEach(g => {
-        const lineas = Math.max(g.cods.length, g.ens.length), alto = lineas * 2.3;
+        const alto = g.cods.length * 2.3;   // columna Ensayo queda libre para designar a mano
         const top = Math.min(bodyH - alto, Math.max(mmY(g.cota) - alto / 2, fin + 0.3));
         fin = top + alto;
         b += `<div class="res-dot" style="top:${mmY(g.cota)}mm;left:${xs[3]}%"></div>`;
-        b += `<div class="res-lb" style="top:${top}mm;left:${xs[2]}%;width:${RES_COLS[2]}%">${g.ens.map(escHtml).join('<br>')}</div>`;
-        b += `<div class="res-lb" style="top:${top}mm;left:${xs[3]}%;width:${RES_COLS[3]}%">${g.cods.join('<br>')}</div>`;
+        b += `<div class="res-lb" style="top:${top}mm;left:${xs[3] + 3}%;width:${RES_COLS[3] - 3}%">${g.cods.join('<br>')}</div>`;
       });
     }
     return `<div class="res-cal">
@@ -1448,9 +1450,9 @@ function construirResumenEstratigrafias(pr, cals, orient, cont) {
       <div class="res-ley" style="height:${M.ley}mm">
         <b>LEYENDA DE MUESTRAS</b><br>
         S = Muestra de Saco &nbsp; MI-G = Muestra Inalterada Grande &nbsp; MI-M = Muestra Inalterada Mediana &nbsp; MI-P = Muestra Inalterada Pequeña<br>
-        Columna "Muestra": código y cantidad por profundidad (ej. S-2, MI-G-1). Columna "Ensayo": designación de terreno; en blanco = por designar.<br>
-        Ensayos: USCS = Clasificación · LL-LP = Límites de Atterberg · Gran = Granulometría · CD = Corte directo · TX = Triaxial · CNC = Compresión no confinada · Cons = Consolidación · PU = Peso unitario · w = Humedad<br>
-        <span style="color:#888">Escala vertical: 0.0 a ${Z.toFixed(1)} m (común a todas las calicatas). Líneas cada 0.5 m. Línea gruesa = fondo de calicata; ▼ azul = nivel freático.</span>
+        Columna "Muestra": cantidad y tipo por profundidad (ej. 2 S = dos sacos, 1 MI-G = una inalterada grande). Columna "Ensayo": libre, para designar a mano.<br>
+        Abreviaturas sugeridas: USCS = Clasificación · LL-LP = Límites de Atterberg · Gran = Granulometría · CD = Corte directo · TX = Triaxial · CNC = Compresión no confinada · Cons = Consolidación · PU = Peso unitario · w = Humedad<br>
+        <span style="color:#888">Escala vertical: 0.0 a ${Z.toFixed(1)} m (común a todas las calicatas). Líneas cada 0.5 m. Línea gruesa = fondo de calicata; línea azul segmentada ▼ NF = nivel freático con su profundidad (sin línea = no detectado).</span>
       </div>`;
     cont.appendChild(pg);
     pg.querySelectorAll('canvas.res-cv').forEach(cv => {
