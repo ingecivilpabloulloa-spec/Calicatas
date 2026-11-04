@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <!--
-  GEOC — App de terreno Calicatas · v6 (04-11-2026)
+  GEOC — App de terreno Calicatas · v6.1 (04-11-2026)
+  v6.1: al abrir una calicata guardada con versiones anteriores, si la cota de una muestra contiene texto
+        (el ensayo que antes se escribía por error en ese campo), se vacía y se marca en rojo para corregir;
+        el navegador ya no sugiere textos anteriores en los campos (autocomplete off).
   v6: sin autollenado de ensayo (antes caía en el campo cota); cantidad en el PDF ("2 Sacos", "1 MIG");
       fotos en hoja ANEXO aparte, grandes; hoja principal siempre en una carta con firmas (se ajusta si no cabe);
       editar y guardar reenvía la calicata completa al Sheet (incluye horizontes nuevos/eliminados);
@@ -11,7 +14,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>Ficha Calicata GEOC v6</title>
+<title>Ficha Calicata GEOC v6.1</title>
 <style>
 :root{--v:#76892F;--vo:#5A6A1A;--vf:#EDF1E0;--vc:#C8D4A0;--r:#c0392b;--bg:#f4f5f0;--card:#fff;--brd:#ddd;--tx:#222}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -332,7 +335,7 @@ input.ce,.fl input.ce{border-color:var(--r)!important;background:#fff5f5!importa
 
 <script>
 // ── CONSTANTES ──
-const APP_VERSION='v6';
+const APP_VERSION='v6.1';
 const LOGO='./geoc_logo.png';
 const SU='https://script.google.com/macros/s/AKfycbzgaLsQmxxga6_lhuVFeA9m0OWxHD6RZMiqlx3Z-HLnSlquRwTdlJ4Opp57YLMM2ZW5bw/exec';
 const UM={GW:'Grava bien graduada',GP:'Grava mal graduada',GM:'Grava limosa',GC:'Grava arcillosa','GW-GM':'Grava bien grad. con limo','GW-GC':'Grava bien grad. con arcilla','GP-GM':'Grava mal grad. con limo','GP-GC':'Grava mal grad. con arcilla',SW:'Arena bien graduada',SP:'Arena mal graduada',SM:'Arena limosa',SC:'Arena arcillosa','SW-SM':'Arena bien grad. con limo','SW-SC':'Arena bien grad. con arcilla','SP-SM':'Arena mal grad. con limo','SP-SC':'Arena mal grad. con arcilla',ML:'Limo de baja plasticidad',CL:'Arcilla de baja-media plasticidad',OL:'Suelo orgánico de baja plast.',MH:'Limo de alta plasticidad',CH:'Arcilla de alta plasticidad',OH:'Suelo orgánico de alta plast.',PT:'Turba','ROCA-SED':'Roca sedimentaria','ROCA-IGN':'Roca ígnea','ROCA-MET':'Roca metamórfica','RELL-C':'Relleno controlado','RELL-CONT':'Relleno contaminado','COB-VEG':'Cobertura vegetal',OTRO:'Otro'};
@@ -1087,9 +1090,15 @@ function addM(n){
 }
 function addMData(n,m){
   const tb=document.getElementById(`ms-${n}`);if(!tb)return;
+  // Datos antiguos: el autollenado de versiones anteriores escribía el ensayo en la cota. Si no es número, se vacía y se marca.
+  const coTxt=String(m.co??'').trim(), coNum=/^-?\d+([.,]\d+)?\s*m?$/i.test(coTxt);
+  const coVal=coNum?coTxt.replace(/\s*m$/i,'').replace(',','.'):'';
+  const coMal=coTxt!==''&&!coNum;
+  m={...m,co:coVal};
   const tr=document.createElement('tr');
-  tr.innerHTML=`<td><input type="number" value="${m.cant||1}" min="1" max="20" style="width:45px;text-align:center;border:0.5px solid #ddd;border-radius:5px;padding:4px;font-size:13px"></td><td><select style="min-width:75px"><option value="">—</option><optgroup label="Inalteradas"><option${m.t==='MIG'?' selected':''}>MIG</option><option${m.t==='MIM'?' selected':''}>MIM</option><option${m.t==='MIP'?' selected':''}>MIP</option></optgroup><optgroup label="Sacos"><option${m.t==='Saco'?' selected':''}>Saco</option></optgroup></select></td><td><input type="text" inputmode="decimal" value="${m.co||''}" style="width:72px;text-align:center;border:0.5px solid #ddd;border-radius:5px;padding:4px;font-size:13px" onblur="fmtDec(this)" placeholder="0.00"></td><td><input type="text" value="${m.e||''}" placeholder="Ensayo" style="min-width:100px"></td><td><button class="bdel" onclick="this.closest('tr').remove()">×</button></td>`;
+  tr.innerHTML=`<td><input type="number" value="${m.cant||1}" min="1" max="20" style="width:45px;text-align:center;border:0.5px solid #ddd;border-radius:5px;padding:4px;font-size:13px"></td><td><select style="min-width:75px"><option value="">—</option><optgroup label="Inalteradas"><option${m.t==='MIG'?' selected':''}>MIG</option><option${m.t==='MIM'?' selected':''}>MIM</option><option${m.t==='MIP'?' selected':''}>MIP</option></optgroup><optgroup label="Sacos"><option${m.t==='Saco'?' selected':''}>Saco</option></optgroup></select></td><td><input type="text" inputmode="decimal" value="${m.co||''}" class="${coMal?'ce':''}" title="${coMal?'Cota inválida en versión anterior: «'+coTxt.replace(/"/g,'')+'». Ingrese la cota.':''}" style="width:72px;text-align:center;border:0.5px solid #ddd;border-radius:5px;padding:4px;font-size:13px" onblur="fmtDec(this);if(this.value)this.classList.remove('ce')" placeholder="${coMal?'corregir':'0.00'}"></td><td><input type="text" value="${m.e||''}" placeholder="Ensayo" style="min-width:100px"></td><td><button class="bdel" onclick="this.closest('tr').remove()">×</button></td>`;
   tb.appendChild(tr);
+  if(coMal)setTimeout(()=>showErr('⚠ Hay muestras con la cota mal guardada en una versión anterior (marcadas en rojo). Ingresa la cota correcta y guarda.'),300);
 }
 function vCM(inp,ini,fin){
   const v=parseFloat(String(inp.value).replace(',','.'));if(isNaN(v))return;
@@ -1429,6 +1438,10 @@ function toast(msg,type=''){
 
 // ── INIT ──
 document.getElementById('app-ver').textContent=APP_VERSION;
+// Evitar que el navegador sugiera textos escritos antes (p. ej. ensayos) en los campos de cota
+const sinAuto=root=>root.querySelectorAll&&root.querySelectorAll('input:not([type=file]):not([type=checkbox]),textarea').forEach(i=>i.setAttribute('autocomplete','off'));
+sinAuto(document);
+new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(sinAuto))).observe(document.body,{childList:true,subtree:true});
 renderFotoSlots();
 renProy();
 showPend();
