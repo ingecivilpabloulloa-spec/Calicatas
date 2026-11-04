@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <!--
-  GEOC — Panel de Oficina · v3 (03-11-2026)
+  GEOC — Panel de Oficina · v3.1 (04-11-2026)
+  v3.1: ✏️ Editar ya no borra datos (mismas opciones que la app de terreno y conserva valores no listados;
+        muestras con cantidad/tipo/cota/ensayo, agregar y quitar); fecha se conserva al editar;
+        si el Sheet tiene filas repetidas de una misma calicata (UID antiguo), se muestra solo la versión más reciente.
   v3: Excel de designación por proyecto (formato FS06P03, plantilla formato_excel_lab.xlsx),
       resumen imprimible de estratigrafías del proyecto (A4 vertical 10/hoja u horizontal 5/hoja),
       columna Ensayo libre, nivel freático marcado, muestras "cantidad + tipo" (2 S, 1 MI-P),
@@ -10,7 +13,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>GEOC — Panel de Oficina v3</title>
+<title>GEOC — Panel de Oficina v3.1</title>
 <style>
 :root{--v:#76892F;--vo:#5A6A1A;--vf:#EDF1E0;--vc:#C8D4A0;--tx:#1a1a1a;--gr:#666;--er:#A32D2D;--ok:#0F6E56}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -101,7 +104,7 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f0eb;color:var(--
 <body>
 <div class="header">
   <img src="./geoc_logo.png" alt="GEOC">
-  <h1>Panel de Oficina <span style="font-size:12px;opacity:.7;margin-left:4px">v3</span></h1>
+  <h1>Panel de Oficina <span style="font-size:12px;opacity:.7;margin-left:4px">v3.1</span></h1>
   <span id="hdr-info">Conectando al Sheet...</span>
 </div>
 
@@ -289,6 +292,22 @@ function getCol(row, ...keys) {
 
 function procesarDatos(rows) {
   todosProyectos = {};
+  // Si una misma calicata (Proyecto + ID) tiene filas con distinto CalicataUID (p. ej. guardada de nuevo
+  // desde un teléfono con versión antigua), se usa solo el UID con el Timestamp más reciente.
+  const ultimoUID = {}, uidsPorCal = {};
+  rows.forEach(row => {
+    const k = (row['Proyecto']||'') + '|' + (row['ID Calicata']||'');
+    const uid = getCol(row,'CalicataUID') || k;
+    const ts = Date.parse(row['Timestamp']) || 0;
+    (uidsPorCal[k] = uidsPorCal[k] || new Set()).add(uid);
+    if (!ultimoUID[k] || ts >= ultimoUID[k].ts) ultimoUID[k] = {uid, ts};
+  });
+  const repetidas = Object.keys(uidsPorCal).filter(k => uidsPorCal[k].size > 1);
+  if (repetidas.length) console.warn('Calicatas con filas repetidas en el Sheet (se muestra la más reciente):', repetidas);
+  rows = rows.filter(row => {
+    const k = (row['Proyecto']||'') + '|' + (row['ID Calicata']||'');
+    return (getCol(row,'CalicataUID') || k) === ultimoUID[k].uid;
+  });
   // Diagnóstico: mostrar columnas de la primera fila
   if(rows.length > 0) {
     console.log('Columnas disponibles:', Object.keys(rows[0]));
@@ -384,7 +403,7 @@ function procesarDatos(rows) {
   document.getElementById('hdr-info').textContent = `${nProy} proyectos · ${nCals} calicatas`;
   document.getElementById('total-proy').textContent = `${nProy} proyectos · ${nCals} calicatas totales`;
   renderProyectos();
-  toast('Datos cargados ✓','ok');
+  toast(repetidas.length ? `Datos cargados ✓ (${repetidas.length} calicata${repetidas.length>1?'s':''} con filas repetidas en el Sheet: se usa la versión más reciente)` : 'Datos cargados ✓', 'ok');
 }
 
 function filtrarProyectos() {
@@ -435,7 +454,7 @@ function renderCalicatas() {
     tr.innerHTML=`
       <td><input type="checkbox" class="chk-cal" data-id="${cal.id}" onchange="updSelCount()"></td>
       <td style="font-weight:600;color:var(--vo)">${cal.id}</td>
-      <td>${cal.fecha||'—'}</td>
+      <td>${cal.fecha ? fmtFechaCL(cal.fecha) : '—'}</td>
       <td>${cal.pt||'—'} m</td>
       <td>${cal.hs.length} horizonte${cal.hs.length!==1?'s':''}</td>
       <td style="font-size:12px;color:var(--gr)">${utmStr}</td>
@@ -578,7 +597,8 @@ function abrirEdicion(id) {
 
   // Datos generales
   document.getElementById('modal-titulo').textContent = `Editando Calicata ${cal.id} — ${proyectoActual.nombre}`;
-  document.getElementById('ed-fecha').value = cal.fecha || '';
+  const pf = partesFecha(cal.fecha);   // el Sheet entrega la fecha como fecha completa; el campo necesita aaaa-mm-dd
+  document.getElementById('ed-fecha').value = pf ? `${pf[0]}-${String(pf[1]).padStart(2,'0')}-${String(pf[2]).padStart(2,'0')}` : '';
   document.getElementById('ed-pt').value = cal.pt || '';
   document.getElementById('ed-met').value = cal.met || '';
   document.getElementById('ed-nf').value = cal.nf || '';
@@ -596,31 +616,62 @@ function cerrarModal() {
   calEditando = null;
 }
 
+// Opciones IGUALES a la app de terreno (index.html). Si el valor guardado no está en la lista,
+// se agrega como opción para no perderlo al guardar.
+const OPC = {
+  gq:['Bien graduada','Mal graduada'],
+  hu:['Seco','Seco a Húmedo','Húmedo','Húmedo a Mojado','Mojado','Mojado a Saturado','Saturado'],
+  co:['Suelta','Suelta a Media','Media','Media a Densa','Densa'],
+  cn:['Muy blanda','Muy blanda a Blanda','Blanda','Blanda a Media','Media','Media a Firme','Firme','Firme a Muy firme','Muy firme','Muy firme a Dura','Dura'],
+  di:['Nula','Lenta','Rápida','No realizado'],
+  rs:['Nula','Nula a Muy baja','Muy baja','Muy baja a Baja','Baja','Baja a Media','Media','Media a Alta','Alta','Alta a Muy alta','Muy alta','No realizado'],
+  pl:['Nula','Nula a Baja','Baja','Baja a Media','Media','Media a Alta','Alta','NP'],
+  fo:['Angular','Angular a Subangular','Subangular','Subangular a Subredondeado','Subredondeado','Subredondeado a Redondeado','Redondeado','No aplica'],
+  ce:['Nula','Débil','Moderada','Fuerte'],
+  or:['Residual','Transportado','Relleno controlado','Relleno contaminado'],
+  mo:['Sin indicios','Raicillas dispersas','Raíces medianas','Abundante materia orgánica'],
+  ol:['Ninguno','Térreo','Orgánico'],
+  ma:['Con manchas','Con bandas'],
+  tm:['MIG','MIM','MIP','Saco']
+};
+const escAttr = s => String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+// "2 Saco" → {cant:2, t:'Saco'}
+function partirTipo(t) {
+  const m = String(t||'').trim().match(/^(\d+)\s+(.+)$/);
+  return m ? {cant:parseInt(m[1]), t:m[2]} : {cant:1, t:String(t||'').trim()};
+}
+const sinM = v => String(v ?? '').trim().replace(/\s*m$/i,'');
+
+function filaMuestraEdit(hi, mi, m) {
+  const pt = partirTipo(m.t);
+  const opts = [''].concat(OPC.tm.includes(pt.t) || !pt.t ? OPC.tm : OPC.tm.concat([pt.t]));
+  const st = 'padding:5px 6px;border:0.5px solid #ddd;border-radius:6px;font-size:13px;width:100%';
+  return `<div class="ms-row" data-hi="${hi}" style="display:grid;grid-template-columns:60px 1fr 90px 2fr 32px;gap:6px;align-items:center;margin-bottom:6px;background:#fff;border-radius:6px;padding:6px 8px;border:0.5px solid #ddd">
+    <input class="ms-cant" type="number" min="1" value="${pt.cant}" style="${st}" title="Cantidad">
+    <select class="ms-t" style="${st}">${opts.map(o=>`<option value="${escAttr(o)}"${o===pt.t?' selected':''}>${o||'— tipo —'}</option>`).join('')}</select>
+    <input class="ms-co" type="text" inputmode="decimal" value="${escAttr(sinM(m.co))}" placeholder="Cota (m)" style="${st}">
+    <input class="ms-e" type="text" value="${escAttr(m.e)}" placeholder="Ensayo (en blanco = por designar)" style="${st}">
+    <button type="button" onclick="this.closest('.ms-row').remove()" style="background:#fdecea;color:#A32D2D;border:none;border-radius:6px;padding:5px;cursor:pointer" title="Quitar muestra">×</button>
+  </div>`;
+}
+function agregarMuestraEdit(hi) {
+  document.getElementById(`eh${hi}_ms`).insertAdjacentHTML('beforeend', filaMuestraEdit(hi, 0, {t:'', co:'', e:''}));
+}
+
 function renderHorizontesEdit(cal) {
   const cont = document.getElementById('ed-horizontes');
   if (!cal.hs || !cal.hs.length) { cont.innerHTML = '<p style="color:var(--gr);font-size:13px">Sin horizontes registrados.</p>'; return; }
 
   const inp = (id,lbl,val,tipo='text') =>
-    `<label style="font-size:12px;color:var(--gr)">${lbl}<input id="${id}" type="${tipo}" value="${val||''}" style="display:block;width:100%;margin-top:3px;padding:6px 8px;border:0.5px solid #ddd;border-radius:6px;font-size:13px"></label>`;
+    `<label style="font-size:12px;color:var(--gr)">${lbl}<input id="${id}" type="${tipo}" value="${escAttr(val)}" style="display:block;width:100%;margin-top:3px;padding:6px 8px;border:0.5px solid #ddd;border-radius:6px;font-size:13px"></label>`;
 
-  const sel = (id,lbl,val,opts) =>
-    `<label style="font-size:12px;color:var(--gr)">${lbl}<select id="${id}" style="display:block;width:100%;margin-top:3px;padding:6px 8px;border:0.5px solid #ddd;border-radius:6px;font-size:13px">${opts.map(o=>`<option value="${o}"${o===val?' selected':''}>${o||'—'}</option>`).join('')}</select></label>`;
+  const sel = (id,lbl,val,lista) => {
+    const v = String(val ?? '').trim();
+    const opts = [''].concat(lista, v && !lista.includes(v) ? [v] : []);   // nunca se pierde el valor guardado
+    return `<label style="font-size:12px;color:var(--gr)">${lbl}<select id="${id}" style="display:block;width:100%;margin-top:3px;padding:6px 8px;border:0.5px solid #ddd;border-radius:6px;font-size:13px">${opts.map(o=>`<option value="${escAttr(o)}"${o===v?' selected':''}>${o||'—'}</option>`).join('')}</select></label>`;
+  };
 
-  const SUCS_OPTS = [''].concat(Object.keys(UM));
-  const OPTS_SI = ['','Sí','No'];
-  const OPTS_HUM = ['','Seco','Húmedo','Saturado','Muy húmedo'];
-  const OPTS_COM = ['','Muy suelto','Suelto','Medianamente denso','Denso','Muy denso'];
-  const OPTS_CON = ['','Muy blanda','Blanda','Firme','Muy firme','Dura'];
-  const OPTS_GR  = ['','Bien graduada','Mal graduada','Uniforme'];
-  const OPTS_DI  = ['','Alta','Baja','Nula'];
-  const OPTS_RS  = ['','Alta','Media','Baja','Nula'];
-  const OPTS_PL  = ['','Alta','Media','Baja','No plástico'];
-  const OPTS_FO  = ['','Angular','Subangular','Subredondeada','Redondeada'];
-  const OPTS_CE  = ['','Calcárea','Silícea','Arcillosa','Ninguna'];
-  const OPTS_OR  = ['','Aluvial','Coluvial','Eólico','Glacial','Marino','Lacustre','Volcánico','Antrópico','Otro'];
-  const OPTS_MO  = ['','Ausente','Trazas','Moderada','Abundante'];
-  const OPTS_TM  = ['','Alterada','Inalterada','Muestra de agua'];
-  const OPTS_ENS = ['','Granulometría','Límites de Atterberg','Humedad natural','CBR','Proctor','Densidad in situ','Clasificación USCS','Otro'];
+  const SUCS_OPTS = Object.keys(UM);
 
   cont.innerHTML = cal.hs.map((h, hi) => `
     <div style="background:var(--vf);border-radius:8px;padding:14px;margin-bottom:12px;border:0.5px solid var(--vc)">
@@ -633,7 +684,7 @@ function renderHorizontesEdit(cal) {
         ${inp(`eh${hi}_nl`,'Nombre Local',h.nl)}
         ${inp(`eh${hi}_cP`,'Color Principal',h.cP)}
         ${inp(`eh${hi}_cS`,'Color Secundario',h.cS)}
-        ${inp(`eh${hi}_ma`,'Manchas/Bandas',h.ma)}
+        ${sel(`eh${hi}_ma`,'Manchas/Bandas',h.ma,OPC.ma)}
         ${inp(`eh${hi}_pBol`,'% Bolones',h.pBol)}
         ${inp(`eh${hi}_tBol`,'Tmáx Bolones',h.tBol)}
         ${inp(`eh${hi}_pG`,'% Gravas',h.pG)}
@@ -641,31 +692,26 @@ function renderHorizontesEdit(cal) {
         ${inp(`eh${hi}_pF`,'% Finos',h.pF)}
         ${inp(`eh${hi}_tP`,'Tmáx Partículas',h.tP)}
         ${inp(`eh${hi}_tPr`,'T Predominante',h.tPr)}
-        ${sel(`eh${hi}_gq`,'Graduación',h.gq,OPTS_GR)}
-        ${sel(`eh${hi}_hu`,'Humedad',h.hu,OPTS_HUM)}
-        ${sel(`eh${hi}_co`,'Compacidad',h.co,OPTS_COM)}
-        ${sel(`eh${hi}_cn`,'Consistencia',h.cn,OPTS_CON)}
-        ${sel(`eh${hi}_di`,'Dilatancia',h.di,OPTS_DI)}
-        ${sel(`eh${hi}_rs`,'Resistencia Seca',h.rs,OPTS_RS)}
-        ${sel(`eh${hi}_pl`,'Plasticidad',h.pl,OPTS_PL)}
-        ${sel(`eh${hi}_fo`,'Forma Partículas',h.fo,OPTS_FO)}
-        ${inp(`eh${hi}_ol`,'Olor',h.ol)}
-        ${sel(`eh${hi}_ce`,'Cementación',h.ce,OPTS_CE)}
-        ${sel(`eh${hi}_or`,'Origen',h.or,OPTS_OR)}
-        ${sel(`eh${hi}_mo`,'Materia Orgánica',h.mo,OPTS_MO)}
+        ${sel(`eh${hi}_gq`,'Graduación',h.gq,OPC.gq)}
+        ${sel(`eh${hi}_hu`,'Humedad',h.hu,OPC.hu)}
+        ${sel(`eh${hi}_co`,'Compacidad',h.co,OPC.co)}
+        ${sel(`eh${hi}_cn`,'Consistencia',h.cn,OPC.cn)}
+        ${sel(`eh${hi}_di`,'Dilatancia',h.di,OPC.di)}
+        ${sel(`eh${hi}_rs`,'Resistencia Seca',h.rs,OPC.rs)}
+        ${sel(`eh${hi}_pl`,'Plasticidad',h.pl,OPC.pl)}
+        ${sel(`eh${hi}_fo`,'Forma Partículas',h.fo,OPC.fo)}
+        ${sel(`eh${hi}_ol`,'Olor',h.ol,OPC.ol)}
+        ${sel(`eh${hi}_ce`,'Cementación',h.ce,OPC.ce)}
+        ${sel(`eh${hi}_or`,'Origen',h.or,OPC.or)}
+        ${sel(`eh${hi}_mo`,'Materia Orgánica',h.mo,OPC.mo)}
         ${inp(`eh${hi}_st`,'Estructura',h.st)}
       </div>
       <div style="display:grid;grid-template-columns:1fr;gap:10px">
         ${inp(`eh${hi}_obs`,'Obs. Horizonte',h.obs)}
       </div>
-      <div style="margin-top:10px;font-size:12px;color:var(--gr);font-weight:600;margin-bottom:6px">Muestras</div>
-      ${(h.ms||[]).map((m,mi)=>`
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:6px;background:#fff;border-radius:6px;padding:8px;border:0.5px solid #ddd">
-          <div style="font-size:11px;color:var(--vo);font-weight:600;grid-column:1/-1">Muestra ${mi+1}</div>
-          ${sel(`eh${hi}_ms${mi}_t`,'Tipo Muestra',m.t,OPTS_TM)}
-          ${inp(`eh${hi}_ms${mi}_co`,'Cota Muestra (m)',m.co)}
-          ${sel(`eh${hi}_ms${mi}_e`,'Ensayo',m.e,OPTS_ENS)}
-        </div>`).join('')}
+      <div style="margin-top:10px;font-size:12px;color:var(--gr);font-weight:600;margin-bottom:6px">Muestras <span style="font-weight:400">(cant. · tipo · cota · ensayo)</span></div>
+      <div id="eh${hi}_ms">${(h.ms||[]).map((m,mi)=>filaMuestraEdit(hi,mi,m)).join('')}</div>
+      <button type="button" class="btn btn-o" style="padding:5px 12px;font-size:12px" onclick="agregarMuestraEdit(${hi})">+ Muestra</button>
     </div>`).join('');
 }
 
@@ -697,11 +743,12 @@ async function guardarEdicion() {
     obsGenerales: document.getElementById('ed-obs').value,
     horizontes: cal.hs.map((h, hi) => {
       const g = id => (document.getElementById(`eh${hi}_${id}`) || {}).value || '';
-      const ms = (h.ms||[]).map((m,mi) => ({
-        t: (document.getElementById(`eh${hi}_ms${mi}_t`)||{}).value||'',
-        co: (document.getElementById(`eh${hi}_ms${mi}_co`)||{}).value||'',
-        e: (document.getElementById(`eh${hi}_ms${mi}_e`)||{}).value||''
-      }));
+      const ms = [...document.querySelectorAll(`#eh${hi}_ms .ms-row`)].map(r => {
+        const cant = parseInt(r.querySelector('.ms-cant').value) || 1;
+        const t = r.querySelector('.ms-t').value.trim();
+        const co = sinM(r.querySelector('.ms-co').value).replace(',', '.');
+        return { t: t ? (cant > 1 ? cant + ' ' : '') + t : '', co: co ? co + 'm' : '', e: r.querySelector('.ms-e').value.trim() };
+      }).filter(m => m.t);
       return {
         nEstrato: h.n,
         profInicio: g('ini'),
@@ -747,32 +794,13 @@ async function guardarEdicion() {
     });
     const json = await resp.json();
     if (json.status === 'ok') {
-      // Actualizar datos en memoria
-      cal.fecha = payload.fecha;
-      cal.pt = payload.profTotal;
-      cal.met = payload.condMeteo;
-      cal.nf = payload.nivelFreatico;
-      cal.nfobs = payload.nfObs;
-      cal.obs = payload.obsGenerales;
-      payload.horizontes.forEach(ph => {
-        const hm = cal.hs.find(h => h.n === ph.nEstrato);
-        if (hm) {
-          hm.ini = ph.profInicio; hm.fin = ph.profFin;
-          hm.pBol = ph.pctBolones; hm.tBol = ph.tmaxBolones;
-          hm.pG = ph.pctGravas; hm.pA = ph.pctArenas; hm.pF = ph.pctFinos;
-          hm.tP = ph.tmaxParticulas; hm.tPr = ph.tPredominante; hm.gq = ph.graduacion;
-          hm.us = ph.sucs; hm.ns = ph.nombreSuelo; hm.nl = ph.nombreLocal;
-          hm.cP = ph.colorPrincipal; hm.cS = ph.colorSecundario; hm.ma = ph.manchas;
-          hm.ol = ph.olor; hm.di = ph.dilatancia; hm.rs = ph.resistenciaSeca;
-          hm.pl = ph.plasticidad; hm.fo = ph.formaParticulas; hm.hu = ph.humedad;
-          hm.co = ph.compacidad; hm.cn = ph.consistencia; hm.st = ph.estructura;
-          hm.ce = ph.cementacion; hm.or = ph.origen; hm.mo = ph.materiaOrganica;
-          hm.obs = ph.obsEstrato;
-        }
-      });
+      // Releer desde el Sheet para mostrar exactamente lo que quedó guardado
+      const nombre = proyectoActual.nombre;
       cerrarModal();
-      renderCalicatas();
+      await cargarDatos();
+      if (todosProyectos[nombre]) abrirProyecto(nombre);
       toast('✅ Calicata guardada en el Sheet','ok');
+      return;
     } else {
       throw new Error(json.message || 'Error desconocido');
     }
